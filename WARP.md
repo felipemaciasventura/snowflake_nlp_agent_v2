@@ -28,12 +28,14 @@ cp .env.example .env
 
 ### Running the Application
 ```bash
-# Run Streamlit application (main entry point not yet implemented)
-# The project structure suggests running via streamlit command targeting the main module
-streamlit run src/main.py  # When main.py is created
+# Run the main Streamlit application
+streamlit run streamlit_app.py
 
 # Development mode with debug enabled
-DEBUG=True streamlit run src/main.py
+DEBUG=True streamlit run streamlit_app.py
+
+# Run with specific port
+streamlit run streamlit_app.py --server.port 8501
 ```
 
 ### Testing
@@ -59,17 +61,42 @@ python -m pytest --cov=src tests/
 - `MODEL_NAME`: LLM model name (defaults to llama3-70b-8192)
 - `DEBUG`: Enable debug mode (defaults to False)
 
+## Usage Examples
+
+### Sample Natural Language Queries (Spanish)
+The application accepts Spanish natural language queries that are converted to SQL:
+
+```
+"Muéstrame las ventas de este mes"
+"¿Cuáles son los 10 clientes con más compras?"
+"Lista todos los productos de la categoría electrónicos"
+"¿Cuál es el promedio de ingresos por región?"
+"Muestra los pedidos de los últimos 30 días"
+```
+
+### Expected Database Schema
+The application works best with properly structured Snowflake databases that include:
+- Table and column comments in Spanish or English
+- Consistent naming conventions
+- Appropriate data types and constraints
+
 ## Architecture
 
 ### High-Level Structure
 The project follows a modular architecture with clear separation of concerns:
 
 ```
-src/
-├── agent/          # NLP agent logic (LangChain integration)
-├── database/       # Snowflake connection and schema inspection
-├── ui/            # Streamlit user interface components
-└── utils/         # Configuration and utility functions
+snowflake_nlp_agent_v2/
+├── streamlit_app.py    # Main Streamlit application entry point
+├── src/
+│   ├── agent/          # NLP agent logic (LangChain + Groq integration)
+│   ├── database/       # Snowflake connection and schema inspection
+│   ├── ui/            # Additional UI components (if needed)
+│   └── utils/         # Configuration and utility functions
+├── tests/             # Test suite
+├── requirements.txt   # Python dependencies
+├── .env.example      # Environment variables template
+└── WARP.md           # This file
 ```
 
 ### Core Components
@@ -84,10 +111,11 @@ src/
 - **`ErrorHandler`** (`helpers.py`): Robust error handling with context-aware exception management and connection validation.
 
 #### Agent Layer (`src/agent/`)
-- **LLM Integration**: Designed to integrate LangChain with Groq LLM for natural language processing (implementation pending).
+- **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain and Groq for natural language to SQL conversion. Features custom Spanish prompts, SQLDatabaseChain for query generation, and comprehensive error handling with step-by-step logging.
 
-#### UI Layer (`src/ui/`)
-- **Streamlit Components**: User interface components for the web application (implementation pending).
+#### UI Layer (`streamlit_app.py` + `src/ui/`)
+- **Main Application** (`streamlit_app.py`): Complete Streamlit web interface with chat functionality, real-time query processing, connection management, and interactive data visualization.
+- **UI Components**: Chat interface, sidebar configuration, connection status, processing logs panel, and data display with pandas DataFrames.
 
 ### Key Technology Stack
 - **Streamlit**: Web application framework
@@ -104,17 +132,38 @@ src/
 - **Context Manager**: Database connections support `with` statement usage
 - **Factory Pattern**: Connection string building and configuration validation
 - **Observer Pattern**: Integrated logging system across all components
+- **Chain of Responsibility**: LangChain's SQLDatabaseChain for processing natural language queries
+- **Session State Management**: Streamlit session state for maintaining chat history and connections
 
 ### Development Notes
-- The application uses Spanish language for comments and error messages
-- Global instances are used for shared resources (config, snowflake_conn, log_manager)
-- SQLAlchemy NullPool is used to avoid connection pool issues with Snowflake
-- Comprehensive error handling with both logging and Streamlit UI feedback
-- Schema inspection supports both specific schema queries and cross-schema discovery
+- **Language Support**: Application interface and NLP processing optimized for Spanish language
+- **Global Instances**: Shared resources managed via singleton pattern (config, snowflake_conn, log_manager)
+- **Connection Pooling**: SQLAlchemy NullPool prevents Snowflake connection pool conflicts
+- **Error Handling**: Dual-layer error management (Python logging + Streamlit UI feedback)
+- **Schema Inspection**: Supports both specific schema queries and cross-schema discovery
+- **LLM Configuration**: Optimized for Llama 3 70B model with temperature=0.1 for consistent SQL generation
+- **Session Persistence**: Chat history and connection state maintained across user interactions
+- **Real-time Logging**: Step-by-step query processing logs displayed in UI for transparency
 
-### Missing Components
-The following components appear to be planned but not yet implemented:
-- Main application entry point (likely `src/main.py` or similar)
-- Actual NLP agent implementation in `src/agent/`
-- Streamlit UI components in `src/ui/`
+### Key Features Implemented
+- **Natural Language Processing**: Complete Spanish-to-SQL conversion using Llama 3 via Groq
+- **Interactive Chat Interface**: Real-time conversation with database using Streamlit chat components
+- **Connection Management**: Robust Snowflake connection handling with status monitoring
+- **Query Logging**: Step-by-step process visualization for transparency
+- **Data Visualization**: Interactive pandas DataFrames for query results
+- **Error Handling**: Comprehensive error management with user-friendly messages
+- **Session Management**: Persistent chat history and connection state
+
+### Development Status
+✅ **Completed Components**:
+- Database layer (connection + schema inspection)
+- NLP agent (LangChain + Groq integration)
+- Main Streamlit application interface
+- Configuration management
+- Logging and error handling
+
+🔄 **Areas for Enhancement**:
 - Test implementations in `tests/`
+- Additional UI components in `src/ui/`
+- Data visualization charts and analytics
+- Query optimization and caching
