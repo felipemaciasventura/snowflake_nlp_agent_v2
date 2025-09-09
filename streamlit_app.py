@@ -103,8 +103,8 @@ def parse_sql_result_string(result_string):
             return parsed_data
             
     except (ValueError, SyntaxError, TypeError) as e:
-        print(f"Error parsing result string: {e}")
-        print(f"Attempting to parse: {cleaned_string[:200]}...")
+        # Los errores de parsing son normales para datos complejos como datetime
+        # El fallback manejará el caso
         
         # Fallback: intentar extraer datos usando regex
         try:
@@ -135,7 +135,7 @@ def parse_sql_result_string(result_string):
                 return parsed_tuples
                 
         except Exception as fallback_error:
-            print(f"Fallback parsing also failed: {fallback_error}")
+            # Fallback también falló, se devolverá el string original
     
     # Si todo falla, devolver el string original
     return result_string
@@ -145,29 +145,19 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
     from decimal import Decimal
     
     # Formateo inteligente de resultados SQL
-    print(f"DEBUG format_sql_result_to_dataframe:")
-    print(f"  Data type: {type(data)}")
-    print(f"  Data preview: {str(data)[:200]}...")
-    print(f"  SQL query: {sql_query}")
-    print(f"  Question: {user_question}")
     
     try:
         # Caso 1: Si es string, intentar parsearlo primero
         if isinstance(data, str):
-            print(f"  Processing string data...")
             # Intentar parsear si parece ser datos de SQL
             if data.startswith('[') or data.startswith('('): 
-                print(f"  Attempting to parse: {data[:100]}...")
                 parsed_data = parse_sql_result_string(data)
                 if parsed_data != data:  # Si se pudo parsear
                     data = parsed_data
-                    print(f"  Successfully parsed to: {type(data)} with {len(data) if hasattr(data, '__len__') else 'N/A'} items")
                     # String parseado exitosamente
                 else:
-                    print(f"  Could not parse, returning as single result")
                     return pd.DataFrame({'Resultado': [data]})
             else:
-                print(f"  String doesn't look like SQL data, returning as result")
                 return pd.DataFrame({'Resultado': [data]})
         
         # Caso 2: Si no hay datos o no es lista
