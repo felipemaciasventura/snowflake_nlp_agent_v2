@@ -28,14 +28,18 @@ cp .env.example .env
 
 ### Running the Application
 ```bash
-# Run the main Streamlit application
-streamlit run streamlit_app.py
+# Activate virtual environment first
+source venv/bin/activate  # On Linux/Mac
+# venv\Scripts\activate   # On Windows
 
-# Development mode with debug enabled
-DEBUG=True streamlit run streamlit_app.py
+# Run the main Streamlit application (recommended)
+streamlit run streamlit_app.py
 
 # Run with specific port
 streamlit run streamlit_app.py --server.port 8501
+
+# For production deployment
+streamlit run streamlit_app.py --server.port 8080 --server.address 0.0.0.0
 ```
 
 ### Testing
@@ -148,22 +152,37 @@ snowflake_nlp_agent_v2/
 ### Key Features Implemented
 - **Natural Language Processing**: Complete Spanish-to-SQL conversion using Llama 3.3 70B via Groq
 - **Interactive Chat Interface**: Real-time conversation with database using Streamlit chat components
+- **Smart Result Formatting**: Intelligent DataFrame formatting with monetary values and user-friendly column names
+- **Robust SQL Parsing**: Advanced parsing of SQL result strings with Decimal support
 - **Connection Management**: Robust Snowflake connection handling with status monitoring
-- **Query Logging**: Step-by-step process visualization for transparency
-- **Data Visualization**: Interactive pandas DataFrames for query results
+- **Direct SQL Execution**: Direct execution of generated SQL against Snowflake for real data retrieval
+- **Data Visualization**: Interactive pandas DataFrames with full-width tables and record counters
 - **Error Handling**: Comprehensive error management with user-friendly messages
 - **Session Management**: Persistent chat history and connection state
+- **Production Ready**: Clean codebase without debug statements, optimized for deployment
+
+### Recent Updates (v2.1)
+✅ **Latest Improvements**:
+- **Smart Result Formatting**: Implemented intelligent DataFrame formatting with monetary values
+- **Robust Data Parsing**: Added parsing of SQL result strings with Decimal object support
+- **LLM Model Update**: Updated to llama-3.3-70b-versatile for better performance
+- **Direct SQL Execution**: Enhanced SQL execution pipeline for real data retrieval
+- **UI/UX Improvements**: Full-width tables, record counters, and cleaner interface
+- **Production Optimization**: Removed debug statements and optimized for deployment
+- **Method Updates**: Fixed deprecated __call__ method usage in LangChain
 
 ### Development Status
 ✅ **Completed Components**:
-- Database layer (connection + schema inspection)
-- NLP agent (LangChain + Groq integration)
-- Main Streamlit application interface
-- Configuration management
-- Logging and error handling
+- Database layer (connection + schema inspection) with connection string support
+- NLP agent (LangChain + Groq integration) with llama-3.3-70b-versatile
+- Main Streamlit application interface with smart formatting
+- Configuration management with updated model defaults
+- Logging and error handling with production-ready optimization
+- Result parsing and visualization with pandas DataFrames
 
 🔄 **Areas for Enhancement**:
 - Test implementations in `tests/`
 - Additional UI components in `src/ui/`
-- Data visualization charts and analytics
-- Query optimization and caching
+- Data visualization charts and analytics beyond tables
+- Query optimization and caching mechanisms
+- Multi-language support beyond Spanish
