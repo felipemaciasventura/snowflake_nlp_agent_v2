@@ -79,7 +79,8 @@ class SnowflakeConnection:
             # Verificar conexión
             cursor = self.connection.cursor()
             cursor.execute(
-                "SELECT CURRENT_USER(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA()"
+                "SELECT CURRENT_USER(), CURRENT_WAREHOUSE(), "
+                "CURRENT_DATABASE(), CURRENT_SCHEMA()"
             )
             result = cursor.fetchone()
             cursor.close()

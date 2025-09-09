@@ -9,7 +9,9 @@ import pandas as pd
 
 
 class SnowflakeNLPAgent:
-    """Agente NLP que traduce preguntas en español a SQL para Snowflake y ejecuta la consulta.
+    """Agente NLP que traduce preguntas en español a SQL para Snowflake.
+
+    Ejecuta la consulta.
 
     Responsabilidades principales:
     - Configurar el LLM (Groq + Llama 3.3 70B Versatile)
@@ -124,7 +126,7 @@ SQL:"""
                         actual_result = self.db.run(cleaned_sql)
                         self.log_step(
                             "✅ Resultados obtenidos",
-                            f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} filas",
+                            f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} filas",  # noqa: E501
                         )
                     except Exception as e:
                         self.log_step(
