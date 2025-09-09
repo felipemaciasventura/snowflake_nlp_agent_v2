@@ -272,7 +272,41 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     )
                 return pd.DataFrame(table_data)
 
-        # Caso 7: Por defecto - usar los datos tal como vienen
+        # Caso 7: Para consultas por región (promedio, suma, etc.)
+        if (
+            "región" in user_question.lower()
+            or "region" in user_question.lower()
+            or "regiones" in user_question.lower()
+        ) and len(data) > 0 and len(data[0]) == 2:
+            # Detectar si es promedio, suma, total, etc.
+            if "promedio" in user_question.lower() or "avg" in sql_query.lower():
+                metric_name = "Promedio de Ingresos"
+            elif "suma" in user_question.lower() or "total" in user_question.lower():
+                metric_name = "Total de Ingresos"
+            elif "count" in sql_query.lower():
+                metric_name = "Cantidad"
+            else:
+                metric_name = "Valor"
+            
+            formatted_rows = []
+            for row in data:
+                region = row[0]
+                value = row[1]
+                
+                # Formatear el valor como moneda si es numérico
+                if isinstance(value, (int, float, Decimal)):
+                    value_formatted = f"${float(value):,.2f}"
+                else:
+                    value_formatted = str(value)
+                
+                formatted_rows.append({
+                    "Región": region,
+                    metric_name: value_formatted
+                })
+            
+            return pd.DataFrame(formatted_rows)
+
+        # Caso 8: Por defecto - usar los datos tal como vienen
         return pd.DataFrame(data)
 
     except Exception:
