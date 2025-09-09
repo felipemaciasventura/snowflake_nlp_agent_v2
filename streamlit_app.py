@@ -192,11 +192,29 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                 # DataFrame creado con formato personalizado
                 return df_result
         
-        # Caso 4: Para CURRENT_DATABASE
+        # Caso 4: Para consultas COUNT (cantidad/cuántas)
+        if ('COUNT(*)' in sql_query.upper() or 'count(*)' in user_question.lower() or 
+            'cuántas' in user_question.lower() or 'cuántos' in user_question.lower() or
+            'cantidad' in user_question.lower()):
+            if len(data) > 0 and len(data[0]) == 1:
+                count_value = data[0][0]
+                # Determinar qué se está contando basado en la pregunta
+                if 'tabla' in user_question.lower():
+                    return pd.DataFrame([{'Descripción': 'Total de tablas en la base de datos', 'Cantidad': f"{count_value:,}"}])
+                elif 'cliente' in user_question.lower():
+                    return pd.DataFrame([{'Descripción': 'Total de clientes', 'Cantidad': f"{count_value:,}"}])
+                elif 'pedido' in user_question.lower() or 'orden' in user_question.lower():
+                    return pd.DataFrame([{'Descripción': 'Total de pedidos', 'Cantidad': f"{count_value:,}"}])
+                elif 'venta' in user_question.lower():
+                    return pd.DataFrame([{'Descripción': 'Total de ventas', 'Cantidad': f"{count_value:,}"}])
+                else:
+                    return pd.DataFrame([{'Descripción': 'Total de registros', 'Cantidad': f"{count_value:,}"}])
+        
+        # Caso 5: Para CURRENT_DATABASE
         if 'CURRENT_DATABASE' in sql_query.upper():
             return pd.DataFrame(data, columns=['Base de Datos'])
         
-        # Caso 5: Para SHOW TABLES
+        # Caso 6: Para SHOW TABLES
         if 'SHOW TABLES' in sql_query.upper():
             if len(data) > 0 and len(data[0]) >= 2:
                 table_data = []
@@ -208,7 +226,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     })
                 return pd.DataFrame(table_data)
         
-        # Caso 6: Por defecto - usar los datos tal como vienen
+        # Caso 7: Por defecto - usar los datos tal como vienen
         return pd.DataFrame(data)
         
     except Exception as e:

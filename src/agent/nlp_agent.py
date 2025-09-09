@@ -44,9 +44,16 @@ REGLAS ESTRICTAS:
 2. NO uses ```sql ni ``` en tu respuesta
 3. NO agregues explicaciones ni texto adicional
 4. Usa nombres exactos de tablas y columnas mostradas arriba
-5. Agrega LIMIT 10 para evitar resultados masivos
+5. Agrega LIMIT 10 para evitar resultados masivos EXCEPTO para consultas COUNT
 6. Para preguntas sobre la base de datos actual: SELECT CURRENT_DATABASE()
 7. Para listar tablas disponibles: SHOW TABLES
+8. IMPORTANTE: Para preguntas sobre CANTIDAD/CUÁNTAS use COUNT:
+   - "¿cuántas tablas hay?" → SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_TYPE = 'BASE TABLE'
+   - "¿cuántos registros hay en [tabla]?" → SELECT COUNT(*) FROM [tabla]
+   - "¿cuántos clientes hay?" → SELECT COUNT(*) FROM customer
+   - "¿cuántas ventas hay?" → SELECT COUNT(*) FROM orders
+9. Para COUNT queries NO añadas LIMIT
+10. Usa INFORMATION_SCHEMA.TABLES para contar tablas del schema actual
 
 SQL:"""
         
