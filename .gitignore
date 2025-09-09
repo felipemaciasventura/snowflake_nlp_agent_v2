@@ -11,3 +11,20 @@ __pycache__/
 .DS_Store
 .vscode/
 .idea/
+
+# Archivos temporales
+*.db
+*.sqlite
+*.tmp
+*.log
+
+# Archivos de sistema
+.DS_Store
+Thumbs.db
+
+# Archivos de desarrollo
+.mypy_cache/
+.tox/
+dist/
+build/
+*.egg-info/

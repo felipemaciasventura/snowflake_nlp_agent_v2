@@ -114,12 +114,10 @@ snowflake_nlp_agent_v2/
 │   ├── 🤖 agent/              # Lógica NLP y LangChain
 │   │   └── nlp_agent.py
 │   ├── 🗄️  database/           # Conexión Snowflake
-│   │   ├── snowflake_conn.py
-│   │   └── schema_inspector.py
+│   │   └── snowflake_conn.py
 │   └── ⚙️  utils/              # Configuración y helpers
 │       ├── config.py
 │       └── helpers.py
-├── 🧪 tests/                  # Suite de pruebas
 ├── 📋 requirements.txt        # Dependencias Python
 ├── 🔧 .env.example           # Template configuración
 └── 📚 WARP.md                # Documentación desarrollo
@@ -163,8 +161,6 @@ DEBUG=True streamlit run streamlit_app.py
 # Producción (servidor público)
 streamlit run streamlit_app.py --server.port 8080 --server.address 0.0.0.0
 
-# Ejecutar tests
-python -m pytest tests/
 
 # Verificar sintaxis
 python -m py_compile streamlit_app.py

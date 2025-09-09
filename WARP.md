@@ -45,17 +45,6 @@ streamlit run streamlit_app.py --server.port 8080 --server.address 0.0.0.0
 source venv/bin/activate && streamlit run streamlit_app.py --server.port 8502
 ```
 
-### Testing
-```bash
-# Run tests (when test files are implemented)
-python -m pytest tests/
-
-# Run specific test file
-python -m pytest tests/test_specific.py
-
-# Run tests with coverage
-python -m pytest --cov=src tests/
-```
 
 ### Environment Variables Required
 - `SNOWFLAKE_ACCOUNT`: Your Snowflake account URL
@@ -97,10 +86,8 @@ snowflake_nlp_agent_v2/
 ├── streamlit_app.py    # Main Streamlit application entry point
 ├── src/
 │   ├── agent/          # NLP agent logic (LangChain + Groq integration)
-│   ├── database/       # Snowflake connection and schema inspection
-│   ├── ui/            # Additional UI components (if needed)
+│   ├── database/       # Snowflake connection
 │   └── utils/         # Configuration and utility functions
-├── tests/             # Test suite
 ├── requirements.txt   # Python dependencies
 ├── .env.example      # Environment variables template
 └── WARP.md           # This file
@@ -110,7 +97,6 @@ snowflake_nlp_agent_v2/
 
 #### Database Layer (`src/database/`)
 - **`SnowflakeConnection`** (`snowflake_conn.py`): Manages Snowflake connections with both raw connector and SQLAlchemy engine support. Includes connection pooling, validation, and query execution methods.
-- **`SchemaInspector`** (`schema_inspector.py`): Provides comprehensive database schema inspection including table discovery, column analysis, data sampling, statistics, and relationship mapping.
 
 #### Utility Layer (`src/utils/`)
 - **`Config`** (`config.py`): Centralized configuration management with environment variable loading and validation.
@@ -120,9 +106,8 @@ snowflake_nlp_agent_v2/
 #### Agent Layer (`src/agent/`)
 - **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain and Groq for natural language to SQL conversion. Features custom Spanish prompts, SQLDatabaseChain for query generation, and comprehensive error handling with step-by-step logging.
 
-#### UI Layer (`streamlit_app.py` + `src/ui/`)
-- **Main Application** (`streamlit_app.py`): Complete Streamlit web interface with chat functionality, real-time query processing, connection management, and interactive data visualization.
-- **UI Components**: Chat interface, sidebar configuration, connection status, processing logs panel, and data display with pandas DataFrames.
+#### UI Layer (`streamlit_app.py`)
+- **Main Application** (`streamlit_app.py`): Complete Streamlit web interface with chat functionality, real-time query processing, connection management, and interactive data visualization including chat interface, sidebar configuration, connection status, processing logs panel, and data display with pandas DataFrames.
 
 ### Key Technology Stack
 - **Streamlit**: Web application framework
@@ -184,8 +169,8 @@ snowflake_nlp_agent_v2/
 - Result parsing and visualization with pandas DataFrames
 
 🔄 **Areas for Enhancement**:
-- Test implementations in `tests/`
-- Additional UI components in `src/ui/`
+- Test suite implementation 
 - Data visualization charts and analytics beyond tables
 - Query optimization and caching mechanisms
 - Multi-language support beyond Spanish
+- Additional UI components and features
