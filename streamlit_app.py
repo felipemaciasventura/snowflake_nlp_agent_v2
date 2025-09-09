@@ -136,6 +136,7 @@ def parse_sql_result_string(result_string):
                 
         except Exception as fallback_error:
             # Fallback también falló, se devolverá el string original
+            pass
     
     # Si todo falla, devolver el string original
     return result_string
