@@ -169,6 +169,65 @@ python -m py_compile streamlit_app.py
 flake8 src/ streamlit_app.py
 ```
 
+## 🔬 Ejemplo de Flujo Detallado
+
+Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una pregunta simple a través del sistema.
+
+**Pregunta del usuario:** `¿Cuáles son los 10 clientes que más han gastado?`
+
+---
+
+#### **Paso 1: Interfaz de Usuario (Streamlit)**
+
+1.  **Entrada del Usuario**: El usuario escribe la pregunta en el chat de la aplicación web (`streamlit_app.py`).
+2.  **Procesamiento de Entrada**: La aplicación guarda y muestra inmediatamente el mensaje del usuario en la interfaz.
+3.  **Llamada al Agente**: Se invoca al núcleo del sistema: `agent.process_query(...)`.
+
+---
+
+#### **Paso 2: Capa del Agente NLP (LangChain + Groq)**
+
+4.  **Inicio del Procesamiento**: El `SnowflakeNLPAgent` (`src/agent/nlp_agent.py`) recibe la consulta.
+5.  **Construcción del Prompt**: La `SQLDatabaseChain` de LangChain combina la pregunta del usuario con el esquema de las tablas de la base de datos y una plantilla de prompt en español.
+6.  **Invocación del LLM**: Se envía el prompt completo a la API de Groq, que utiliza el modelo `llama-3.3-70b-versatile`.
+7.  **Generación de SQL**: El LLM, guiado por el prompt, genera la consulta SQL correspondiente.
+    ```sql
+    SELECT c.c_name, SUM(o.o_totalprice) AS total_gastado
+    FROM CUSTOMER c
+    JOIN ORDERS o ON c.c_custkey = o.o_custkey
+    GROUP BY c.c_name
+    ORDER BY total_gastado DESC
+    LIMIT 10
+    ```
+8.  **Extracción de SQL**: El agente extrae la consulta SQL generada de la respuesta de LangChain.
+
+---
+
+#### **Paso 3: Capa de Acceso a Datos (Snowflake)**
+
+9.  **Ejecución de la Consulta**: El agente ejecuta la consulta SQL a través de la capa de conexión a la base de datos (`src/database/snowflake_conn.py`).
+10. **Procesamiento en Snowflake**: Snowflake recibe la consulta, la ejecuta en su motor de cómputo y devuelve los resultados. Por ejemplo:
+    ```
+    [('Customer#0001', Decimal('555285.16')), ('Customer#0002', Decimal('544089.09')), ...]
+    ```
+11. **Recepción de Resultados**: La aplicación recibe estos resultados (una lista de tuplas).
+
+---
+
+#### **Paso 4: Formateo y Visualización (Streamlit)**
+
+12. **Formateo Inteligente**: Una función de utilidad (`format_sql_result_to_dataframe`) convierte la lista de tuplas en un DataFrame de Pandas, aplicando formato de moneda y nombres de columna amigables.
+13. **Visualización Final**:
+    *   La aplicación muestra el DataFrame formateado en una tabla interactiva.
+    *   Muestra un contador debajo de la tabla: `📊 10 registros encontrados`.
+    *   La respuesta completa se guarda en el historial del chat.
+
+---
+
+#### **Paso 5: Trazabilidad (Logs en UI)**
+
+14. **Panel de Logs**: Durante todo el proceso, se registran logs detallados que se muestran en el panel lateral, ofreciendo total transparencia sobre lo que hizo el sistema, desde la SQL que generó hasta los resultados que obtuvo.
+
 ## 🔄 Actualizaciones Recientes (v2.1)
 
 ### ✅ Nuevas Características
