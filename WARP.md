@@ -58,7 +58,7 @@ python -m pytest --cov=src tests/
 - `SNOWFLAKE_DATABASE`: Snowflake database name
 - `SNOWFLAKE_SCHEMA`: Snowflake schema (defaults to PUBLIC)
 - `GROQ_API_KEY`: Groq API key for LLM services
-- `MODEL_NAME`: LLM model name (defaults to llama3-70b-8192)
+- `MODEL_NAME`: LLM model name (defaults to llama-3.3-70b-versatile)
 - `DEBUG`: Enable debug mode (defaults to False)
 
 ## Usage Examples
@@ -141,12 +141,12 @@ snowflake_nlp_agent_v2/
 - **Connection Pooling**: SQLAlchemy NullPool prevents Snowflake connection pool conflicts
 - **Error Handling**: Dual-layer error management (Python logging + Streamlit UI feedback)
 - **Schema Inspection**: Supports both specific schema queries and cross-schema discovery
-- **LLM Configuration**: Optimized for Llama 3 70B model with temperature=0.1 for consistent SQL generation
+- **LLM Configuration**: Uses Llama 3.3 70B Versatile model with temperature=0.1 for consistent SQL generation
 - **Session Persistence**: Chat history and connection state maintained across user interactions
 - **Real-time Logging**: Step-by-step query processing logs displayed in UI for transparency
 
 ### Key Features Implemented
-- **Natural Language Processing**: Complete Spanish-to-SQL conversion using Llama 3 via Groq
+- **Natural Language Processing**: Complete Spanish-to-SQL conversion using Llama 3.3 70B via Groq
 - **Interactive Chat Interface**: Real-time conversation with database using Streamlit chat components
 - **Connection Management**: Robust Snowflake connection handling with status monitoring
 - **Query Logging**: Step-by-step process visualization for transparency

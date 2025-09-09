@@ -22,7 +22,7 @@ class Config:
         
         # Groq/LLM
         self.GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-        self.MODEL_NAME = os.getenv('MODEL_NAME', 'llama3-70b-8192')
+        self.MODEL_NAME = os.getenv('MODEL_NAME', 'llama-3.3-70b-versatile')
         
         # App
         self.DEBUG = os.getenv('DEBUG', 'False').lower() == 'true'

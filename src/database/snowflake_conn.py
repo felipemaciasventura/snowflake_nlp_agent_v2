@@ -174,6 +174,10 @@ class SnowflakeConnection:
             error_handler.handle_exception(e, "obtención de info de conexión")
             return {}
     
+    def get_connection_string(self) -> str:
+        """Obtiene string de conexión para SQLAlchemy"""
+        return self._build_connection_string()
+    
     def _build_connection_string(self) -> str:
         """Construye string de conexión para SQLAlchemy"""
         return (
