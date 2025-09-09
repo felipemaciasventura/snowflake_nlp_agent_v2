@@ -333,7 +333,7 @@ def display_chat_messages():
             if message["role"] == "assistant" and "data" in message:
                 st.write(message["content"])
                 if not message["data"].empty:
-                    st.dataframe(message["data"], use_container_width=True)
+                    st.dataframe(message["data"], width='stretch')
                     # Mostrar número de registros
                     num_rows = len(message["data"])
                     st.caption(
@@ -380,7 +380,7 @@ def process_user_input(prompt):
                             )
 
                             # Mostrar la tabla formateada
-                            st.dataframe(df, use_container_width=True)
+                            st.dataframe(df, width='stretch')
 
                             # Mostrar información adicional
                             num_rows = len(df)
