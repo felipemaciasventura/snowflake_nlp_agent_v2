@@ -15,7 +15,17 @@ from src.utils.helpers import log_manager, error_handler
 logger = logging.getLogger(__name__)
 
 class SnowflakeConnection:
-    """Clase para manejar conexiones con Snowflake"""
+    """Clase para manejar conexiones con Snowflake.
+
+    Ofrece:
+    - connect(): valida configuración, abre conexión nativa y crea engine SQLAlchemy
+    - execute_query(): ejecuta SQL y devuelve filas + nombres de columnas
+    - execute_query_to_df(): ejecuta SQL y devuelve un DataFrame (pandas)
+    - get_connection_string(): expone cadena de conexión para integraciones (LangChain)
+    - get_connection_info(): devuelve metadatos de sesión actuales
+
+    Nota: Se usa NullPool para evitar conflictos de pooling con Snowflake.
+    """
     
     def __init__(self):
         self.connection = None

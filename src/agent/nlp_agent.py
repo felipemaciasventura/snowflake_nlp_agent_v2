@@ -8,6 +8,17 @@ import logging
 import pandas as pd
 
 class SnowflakeNLPAgent:
+    """Agente NLP que traduce preguntas en español a SQL para Snowflake y ejecuta la consulta.
+
+    Responsabilidades principales:
+    - Configurar el LLM (Groq + Llama 3.3 70B Versatile)
+    - Configurar una cadena SQL (SQLDatabaseChain) con un prompt en español
+    - Invocar la cadena con la pregunta del usuario
+    - Extraer la SQL generada de los intermediate_steps
+    - Ejecutar la SQL de forma segura en la base de datos y devolver filas reales
+    - Registrar pasos del proceso para visibilidad en la UI
+    """
+
     def __init__(self, db_connection, groq_api_key: str):
         self.llm = ChatGroq(
             groq_api_key=groq_api_key,
@@ -19,6 +30,7 @@ class SnowflakeNLPAgent:
         self.db = SQLDatabase.from_uri(db_connection)
         
         # Crear prompt personalizado para SQLDatabaseChain
+        # Prompt en español para generar SQL segura y ejecutable en Snowflake
         sql_prompt = """
 Eres un experto en SQL para Snowflake. Debes convertir preguntas en español a consultas SQL válidas.
 
@@ -51,7 +63,16 @@ SQL:"""
         
     
     def process_query(self, user_question: str) -> Dict[str, Any]:
-        """Procesa una consulta del usuario y retorna resultado estructurado"""
+        """Procesa la consulta de usuario y devuelve datos listos para la UI.
+
+        Flujo:
+        1) Invoca la cadena SQL para obtener SQL a partir de lenguaje natural
+        2) Extrae la SQL generada desde intermediate_steps de LangChain
+        3) Normaliza/remueve formato markdown si existe
+        4) Ejecuta la SQL directamente contra Snowflake (vía SQLDatabase)
+        5) Si no hay SQL clara, intenta alternativas (intermediate_steps, respuesta LLM)
+        6) Registra cada paso para trazabilidad en Streamlit
+        """
         try:
             # Log del inicio del procesamiento
             self.log_step("🔍 Procesando consulta", user_question)
@@ -77,8 +98,8 @@ SQL:"""
             # Si tenemos una SQL clara, ejecutarla directamente para obtener datos reales
             actual_result = None
             if isinstance(sql_query, str):
+                # Normaliza la SQL (remueve posibles backticks/markdown)
                 cleaned_sql = sql_query.strip().strip('`').strip()
-                # Quitar posible formato markdown
                 if cleaned_sql.startswith('```'):
                     cleaned_sql = cleaned_sql.strip('`')
                 if cleaned_sql.upper().startswith(('SELECT', 'SHOW', 'DESCRIBE')):

@@ -40,6 +40,9 @@ streamlit run streamlit_app.py --server.port 8501
 
 # For production deployment
 streamlit run streamlit_app.py --server.port 8080 --server.address 0.0.0.0
+
+# Personal
+source venv/bin/activate && streamlit run streamlit_app.py --server.port 8502
 ```
 
 ### Testing

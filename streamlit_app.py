@@ -51,6 +51,10 @@ def setup_sidebar():
         st.session_state.processing_logs = []
         st.rerun()
 
+# ========================
+# Utilidades de formateo
+# ========================
+
 def parse_sql_result_string(result_string):
     """Parsea un string con resultados SQL y lo convierte en datos reales"""
     import re
@@ -147,8 +151,12 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
         except:
             return pd.DataFrame({'Resultado': [str(data)]})
 
+# ========================
+# Render de UI (mensajes y chat)
+# ========================
+
 def display_chat_messages():
-    """Muestra el historial de mensajes del chat"""
+    """Muestra el historial de mensajes del chat con tablas y contadores."""
     st.header("💬 Chat con tu Base de Datos")
     
     # Mostrar historial de mensajes
@@ -165,7 +173,15 @@ def display_chat_messages():
                 st.write(message["content"])
 
 def process_user_input(prompt):
-    """Procesa la entrada del usuario"""
+    """Procesa la entrada del usuario y renderiza respuesta/tabla.
+
+    Orquesta:
+    - Persistir mensaje del usuario
+    - Invocar al agente NLP (NL → SQL → ejecución)
+    - Formatear resultados en DataFrame amigable
+    - Mostrar tabla y contador de registros
+    - Persistir respuesta en el historial de chat
+    """
     # Agregar mensaje del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
     
@@ -243,7 +259,14 @@ def display_logs_panel():
         st.info("No hay logs disponibles. Realiza una consulta para ver el proceso.")
 
 def main():
-    """Función principal"""
+    """Función principal de la app Streamlit.
+
+    Ensambla la UI y bootstrapping:
+    - Inicializa estado de sesión (mensajes, logs, conexión, agente)
+    - Gestiona conexión a Snowflake y crea el agente si hay credenciales
+    - Organiza layout (chat a la izquierda, sidebar + logs a la derecha)
+    - Coloca chat_input al final (fuera de columnas) para cumplir reglas Streamlit
+    """
     st.title("🤖 Agente NLP para Consultas en Snowflake")
     st.markdown("Haz preguntas en español y obten respuestas de tu base de datos Snowflake")
     
