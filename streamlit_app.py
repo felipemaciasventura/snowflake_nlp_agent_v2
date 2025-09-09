@@ -59,18 +59,85 @@ def parse_sql_result_string(result_string):
     """Parsea un string con resultados SQL y lo convierte en datos reales"""
     import re
     from decimal import Decimal
+    import ast
+    
+    # Si no es string o no tiene el formato esperado, devolver tal como está
+    if not isinstance(result_string, str) or not result_string.strip():
+        return result_string
+        
+    # Limpiar el string de entrada
+    cleaned_string = result_string.strip()
     
     try:
-        if isinstance(result_string, str) and result_string.startswith('[('): 
+        # Caso 1: Lista de tuplas [(...), (...)]
+        if cleaned_string.startswith('[') and cleaned_string.endswith(']'):
             # Reemplazar Decimal('...') con float
-            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r'\1', result_string)
-            # Ahora intentar evaluar
-            import ast
+            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r'\1', cleaned_string)
+            # Reemplazar None con 'None' para evaluación segura
+            cleaned_string = re.sub(r'\bNone\b', "'None'", cleaned_string)
+            
+            # Intentar evaluar como literal de Python
             parsed_data = ast.literal_eval(cleaned_string)
             return parsed_data
+            
+        # Caso 2: Tupla simple (...)
+        elif cleaned_string.startswith('(') and cleaned_string.endswith(')'):
+            # Convertir tupla simple a lista de tuplas
+            cleaned_string = f"[{cleaned_string}]"
+            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r'\1', cleaned_string)
+            cleaned_string = re.sub(r'\bNone\b', "'None'", cleaned_string)
+            
+            parsed_data = ast.literal_eval(cleaned_string)
+            return parsed_data
+            
+        # Caso 3: String que parece ser datos pero no está bien formateado
+        elif 'Decimal(' in cleaned_string or 'None' in cleaned_string:
+            # Intentar arreglar el formato
+            if not cleaned_string.startswith('['):
+                cleaned_string = f"[{cleaned_string}]"
+            
+            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r'\1', cleaned_string)
+            cleaned_string = re.sub(r'\bNone\b', "'None'", cleaned_string)
+            
+            parsed_data = ast.literal_eval(cleaned_string)
+            return parsed_data
+            
     except (ValueError, SyntaxError, TypeError) as e:
         print(f"Error parsing result string: {e}")
+        print(f"Attempting to parse: {cleaned_string[:200]}...")
+        
+        # Fallback: intentar extraer datos usando regex
+        try:
+            # Buscar patrones de tuplas con números
+            tuple_pattern = r'\(([^)]+)\)'
+            matches = re.findall(tuple_pattern, cleaned_string)
+            
+            if matches:
+                parsed_tuples = []
+                for match in matches:
+                    # Separar elementos por coma
+                    elements = [elem.strip().strip("'\"") for elem in match.split(',')]
+                    # Convertir números cuando sea posible
+                    converted_elements = []
+                    for elem in elements:
+                        try:
+                            # Intentar convertir a número
+                            if '.' in elem:
+                                converted_elements.append(float(elem))
+                            else:
+                                converted_elements.append(int(elem))
+                        except ValueError:
+                            # Si no es número, mantener como string
+                            converted_elements.append(elem)
+                    
+                    parsed_tuples.append(tuple(converted_elements))
+                
+                return parsed_tuples
+                
+        except Exception as fallback_error:
+            print(f"Fallback parsing also failed: {fallback_error}")
     
+    # Si todo falla, devolver el string original
     return result_string
 
 def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
@@ -78,19 +145,29 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
     from decimal import Decimal
     
     # Formateo inteligente de resultados SQL
+    print(f"DEBUG format_sql_result_to_dataframe:")
+    print(f"  Data type: {type(data)}")
+    print(f"  Data preview: {str(data)[:200]}...")
+    print(f"  SQL query: {sql_query}")
+    print(f"  Question: {user_question}")
     
     try:
         # Caso 1: Si es string, intentar parsearlo primero
         if isinstance(data, str):
+            print(f"  Processing string data...")
             # Intentar parsear si parece ser datos de SQL
-            if data.startswith('[('): 
+            if data.startswith('[') or data.startswith('('): 
+                print(f"  Attempting to parse: {data[:100]}...")
                 parsed_data = parse_sql_result_string(data)
                 if parsed_data != data:  # Si se pudo parsear
                     data = parsed_data
+                    print(f"  Successfully parsed to: {type(data)} with {len(data) if hasattr(data, '__len__') else 'N/A'} items")
                     # String parseado exitosamente
                 else:
+                    print(f"  Could not parse, returning as single result")
                     return pd.DataFrame({'Resultado': [data]})
             else:
+                print(f"  String doesn't look like SQL data, returning as result")
                 return pd.DataFrame({'Resultado': [data]})
         
         # Caso 2: Si no hay datos o no es lista
