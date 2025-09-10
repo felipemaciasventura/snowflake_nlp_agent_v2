@@ -28,7 +28,7 @@ class Config:
         
         # Model configuration
         self.MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")  # For Groq
-        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")  # For Gemini
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # For Gemini
         
         # LLM Provider selection (auto-detect or manual)
         self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto")  # auto, groq, gemini
