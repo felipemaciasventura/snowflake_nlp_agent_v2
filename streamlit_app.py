@@ -40,7 +40,18 @@ def setup_sidebar():
     # Información del sistema
     st.sidebar.header("📊 Información del Sistema")
     if st.session_state.agent:
-        st.sidebar.info("LLM: Llama 3.3 70B Versatile (Groq)")
+        # Detectar qué modelo LLM se está usando
+        from src.utils.config import config
+        provider = config.get_available_llm_provider()
+        
+        if provider == "gemini":
+            model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
+        elif provider == "groq":
+            model_info = f"LLM: {config.MODEL_NAME} (Groq)"
+        else:
+            model_info = "LLM: No detectado"
+            
+        st.sidebar.info(model_info)
         st.sidebar.info(f"Base de datos: {os.getenv('SNOWFLAKE_DATABASE')}")
         st.sidebar.info(f"Schema: {os.getenv('SNOWFLAKE_SCHEMA')}")
 
@@ -49,6 +60,100 @@ def setup_sidebar():
         st.session_state.messages = []
         st.session_state.processing_logs = []
         st.rerun()
+
+
+# ========================
+# Detección y respuestas híbridas
+# ========================
+
+
+def is_database_query(user_input):
+    """Detecta si la consulta es sobre bases de datos o fuera de contexto"""
+    user_input_lower = user_input.lower()
+    
+    # Palabras clave que indican consulta de BD
+    db_keywords = [
+        "tabla", "datos", "consulta", "cuántos", "cuántas", "mostrar", "listar", 
+        "región", "cliente", "venta", "promedio", "suma", "total", "count",
+        "select", "database", "schema", "registros", "filas", "columnas",
+        "pedidos", "ordenes", "productos", "categorías", "ingresos", "facturación",
+        "análisis", "reporte", "estadísticas", "máximo", "mínimo", "buscar",
+        "filtrar", "agrupar", "ordenar", "top", "mayor", "menor", "últimos", "últimas"
+    ]
+    
+    # Palabras clave fuera de contexto  
+    off_topic_keywords = [
+        "clima", "tiempo", "noticias", "receta", "traducir", "como estas", "que tal",
+        "chiste", "historia", "película", "música", "deporte", "política",
+        "salud", "medicina", "viaje", "restaurante", "comprar", "precio",
+        "horario", "dirección", "teléfono", "email", "programar", "código"
+    ]
+    
+    # Preguntas de ayuda/información (caso especial)
+    help_keywords = [
+        "ayuda", "qué puedes hacer", "cómo funciona", "qué haces",
+        "para qué sirves", "cómo usar", "instrucciones", "comandos",
+        "ejemplos", "capacidades", "funciones"
+    ]
+    
+    # Verificar si es pregunta de ayuda
+    if any(keyword in user_input_lower for keyword in help_keywords):
+        return "help"
+    
+    # Verificar si contiene palabras claramente fuera de contexto
+    if any(keyword in user_input_lower for keyword in off_topic_keywords):
+        return "off_topic"
+    
+    # Verificar si contiene palabras clave de BD
+    if any(keyword in user_input_lower for keyword in db_keywords):
+        return "database"
+    
+    # Si no es claro, asumir que podría ser de BD (dar el beneficio de la duda)
+    # pero con precaución
+    if len(user_input.split()) < 3:  # Muy corto, probablemente no es consulta DB
+        return "unclear"
+    
+    return "database"  # Por defecto, intentar como consulta de BD
+
+
+def get_help_response():
+    """Devuelve respuesta educativa sobre las capacidades del sistema"""
+    return {
+        "type": "help",
+        "message": """¡Hola! 👋 Soy tu asistente NLP para consultas en Snowflake.
+
+🔍 **Te puedo ayudar con:**
+• 📈 **Consultas sobre datos:** "?Cuántos clientes tengo?"
+• 📊 **Análisis por región:** "?Cuál es el promedio de ventas por región?"
+• 📋 **Listados:** "Muéstrame los productos más vendidos"
+• 🖼️ **Información de tablas:** "?Qué tablas hay disponibles?"
+• 🔢 **Conteos:** "?Cuántas órdenes hay en total?"
+• 📅 **Consultas temporales:** "Muestra las ventas de los últimos 30 días"
+
+🎨 **Ejemplos que puedes probar:**
+• "Lista todas las regiones disponibles"
+• "?Cuál es el cliente que más ha gastado?"
+• "Muéstrame el promedio de ingresos por región"
+
+¡Hazme cualquier pregunta sobre tus datos! 🚀"""
+    }
+
+
+def get_redirect_response():
+    """Devuelve respuesta de redirección para consultas fuera de contexto"""
+    return {
+        "type": "redirect",
+        "message": """🤖 Soy un asistente especializado en consultas de bases de datos Snowflake.
+
+No puedo ayudarte con esa consulta, pero ¡sí puedo ayudarte a explorar tus datos! 📋
+
+🎨 **Prueba preguntándome algo como:**
+• "?Cuántos registros hay en la tabla de clientes?"
+• "Muéstrame las regiones con mayor facturación"
+• "?Qué tablas están disponibles?"
+
+¿Hay alguna información de tu base de datos que te interese conocer? 😊"""
+    }
 
 
 # ========================
@@ -377,14 +482,13 @@ def display_chat_messages():
 
 
 def process_user_input(prompt):
-    """Procesa la entrada del usuario y renderiza respuesta/tabla.
+    """Procesa la entrada del usuario con detección híbrida.
 
-    Orquesta:
-    - Persistir mensaje del usuario
-    - Invocar al agente NLP (NL → SQL → ejecución)
-    - Formatear resultados en DataFrame amigable
-    - Mostrar tabla y contador de registros
-    - Persistir respuesta en el historial de chat
+    Flujo híbrido:
+    1. Detectar tipo de consulta (BD, ayuda, fuera de contexto)
+    2. Responder apropiadamente según el tipo
+    3. Para consultas DB: invocar agente NLP → SQL → ejecución
+    4. Para otras: mostrar respuestas educativas/redirección
     """
     # Agregar mensaje del usuario
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -392,7 +496,37 @@ def process_user_input(prompt):
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Procesar con el agente
+    # Detectar tipo de consulta
+    query_type = is_database_query(prompt)
+    
+    with st.chat_message("assistant"):
+        if query_type == "help":
+            # Respuesta educativa
+            help_resp = get_help_response()
+            st.markdown(help_resp["message"])
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": help_resp["message"],
+                "data": pd.DataFrame()
+            })
+            return
+            
+        elif query_type == "off_topic":
+            # Respuesta de redirección
+            redirect_resp = get_redirect_response()
+            st.markdown(redirect_resp["message"])
+            st.session_state.messages.append({
+                "role": "assistant",
+                "content": redirect_resp["message"],
+                "data": pd.DataFrame()
+            })
+            return
+            
+        elif query_type == "unclear":
+            # Dar el beneficio de la duda pero advertir
+            st.info("🤔 No estoy seguro si preguntas sobre datos. Intentaré como consulta de BD...")
+    
+    # Procesar como consulta de base de datos
     if st.session_state.agent:
         with st.chat_message("assistant"):
             with st.spinner("Procesando consulta..."):
