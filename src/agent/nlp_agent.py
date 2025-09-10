@@ -1,11 +1,13 @@
-from langchain_groq import ChatGroq
+from langchain_groq import ChatGroq  # Para usar con Groq (código conservado)
+from langchain_google_genai import ChatGoogleGenerativeAI  # Para usar con Gemini
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.prompts import PromptTemplate
 import streamlit as st
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 
 import pandas as pd
+from src.utils.config import config
 
 
 class SnowflakeNLPAgent:
@@ -14,7 +16,7 @@ class SnowflakeNLPAgent:
     Ejecuta la consulta.
 
     Responsabilidades principales:
-    - Configurar el LLM (Groq + Llama 3.3 70B Versatile)
+    - Configurar el LLM (Groq o Gemini, según configuración)
     - Configurar una cadena SQL (SQLDatabaseChain) con un prompt en español
     - Invocar la cadena con la pregunta del usuario
     - Extraer la SQL generada de los intermediate_steps
@@ -22,13 +24,41 @@ class SnowflakeNLPAgent:
     - Registrar pasos del proceso para visibilidad en la UI
     """
 
-    def __init__(self, db_connection, groq_api_key: str):
-        self.llm = ChatGroq(
-            groq_api_key=groq_api_key,
-            model_name="llama-3.3-70b-versatile",
-            temperature=0.1,
-            max_tokens=4000,
-        )
+    def __init__(self, db_connection: str, groq_api_key: Optional[str] = None, google_api_key: Optional[str] = None):
+        # Seleccionar proveedor LLM disponible
+        provider = config.get_available_llm_provider()
+
+        # Permitir override desde parámetros si se pasan explícitamente
+        groq_key = groq_api_key or config.GROQ_API_KEY
+        google_key = google_api_key or config.GOOGLE_API_KEY
+
+        if provider == "gemini" and google_key:
+            # Usar Gemini (recomendado si tienes plan estudiante)
+            self.llm = ChatGoogleGenerativeAI(
+                google_api_key=google_key,
+                model=config.GEMINI_MODEL,
+                temperature=0.1,
+                max_output_tokens=4000,
+            )
+            st.sidebar.info("LLM en uso: Gemini (Google)")
+        elif provider == "groq" and groq_key:
+            # USO CON GROQ (código conservado):
+            # self.llm = ChatGroq(
+            #     groq_api_key=groq_key,
+            #     model_name=config.MODEL_NAME,
+            #     temperature=0.1,
+            #     max_tokens=4000,
+            # )
+            # Se mantiene funcionalidad Groq activa, por defecto
+            self.llm = ChatGroq(
+                groq_api_key=groq_key,
+                model_name=config.MODEL_NAME,
+                temperature=0.1,
+                max_tokens=4000,
+            )
+            st.sidebar.info("LLM en uso: Groq (Llama)")
+        else:
+            raise RuntimeError("No hay proveedor LLM disponible. Configura GOOGLE_API_KEY o GROQ_API_KEY.")
 
         self.db = SQLDatabase.from_uri(db_connection)
 

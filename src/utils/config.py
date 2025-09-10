@@ -22,13 +22,34 @@ class Config:
         self.SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE")
         self.SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
-        # Groq/LLM
+        # LLM Providers - Dual support (Groq + Gemini)
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-        self.MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")
+        self.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+        
+        # Model configuration
+        self.MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")  # For Groq
+        self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-pro")  # For Gemini
+        
+        # LLM Provider selection (auto-detect or manual)
+        self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto")  # auto, groq, gemini
 
         # App
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
 
+    def get_available_llm_provider(self) -> str:
+        """Detecta qué proveedor de LLM está disponible"""
+        if self.LLM_PROVIDER == "groq" and self.GROQ_API_KEY:
+            return "groq"
+        elif self.LLM_PROVIDER == "gemini" and self.GOOGLE_API_KEY:
+            return "gemini"
+        elif self.LLM_PROVIDER == "auto":
+            # Auto-detectar: priorizar Gemini si está disponible
+            if self.GOOGLE_API_KEY:
+                return "gemini"
+            elif self.GROQ_API_KEY:
+                return "groq"
+        return None
+    
     def validate(self) -> Dict:
         """Valida que todas las variables requeridas estén configuradas"""
         required_vars = [
@@ -37,8 +58,12 @@ class Config:
             "SNOWFLAKE_PASSWORD",
             "SNOWFLAKE_WAREHOUSE",
             "SNOWFLAKE_DATABASE",
-            "GROQ_API_KEY",
         ]
+        
+        # Verificar que al menos un proveedor LLM esté disponible
+        llm_provider = self.get_available_llm_provider()
+        if not llm_provider:
+            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY"])
 
         missing_vars = []
         for var in required_vars:

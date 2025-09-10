@@ -467,15 +467,19 @@ def main():
             if db_conn.connect():
                 st.session_state.db_connection = db_conn
 
-                # Inicializar agente
+                # Inicializar agente (auto-detecta proveedor LLM)
+                google_api_key = os.getenv("GOOGLE_API_KEY")
                 groq_api_key = os.getenv("GROQ_API_KEY")
-                if groq_api_key:
+                try:
                     st.session_state.agent = SnowflakeNLPAgent(
-                        db_conn.get_connection_string(), groq_api_key
+                        db_conn.get_connection_string(),
+                        groq_api_key=groq_api_key,
+                        google_api_key=google_api_key,
                     )
                     st.success("✅ Conexión establecida exitosamente!")
-                else:
-                    st.error("❌ GROQ_API_KEY no configurada")
+                except Exception as e:
+                    st.error(f"❌ Error inicializando LLM: {e}")
+                    st.stop()
             else:
                 st.error(
                     "❌ No se pudo conectar a Snowflake. Verifica tu configuración."
