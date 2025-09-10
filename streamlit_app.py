@@ -306,16 +306,47 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             
             return pd.DataFrame(formatted_rows)
 
-        # Caso 8: Por defecto - usar los datos tal como vienen
-        return pd.DataFrame(data)
-
-    except Exception:
-        # Error en formateo, usando formato básico
-        # En caso de error, devolver DataFrame básico
+        # Caso 8: Por defecto - crear DataFrame de manera más robusta
         try:
-            return pd.DataFrame(data)
+            # Intentar crear DataFrame directamente
+            df = pd.DataFrame(data)
+            return df
         except Exception:
-            return pd.DataFrame({"Resultado": [str(data)]})
+            # Si falla, intentar con nombres genéricos de columnas
+            try:
+                if len(data) > 0 and isinstance(data[0], (tuple, list)):
+                    # Crear nombres de columna genéricos
+                    num_cols = len(data[0]) if data[0] else 1
+                    column_names = [f"Columna_{i+1}" for i in range(num_cols)]
+                    df = pd.DataFrame(data, columns=column_names)
+                    return df
+                else:
+                    # Datos en formato no esperado
+                    df = pd.DataFrame({"Resultado": data if isinstance(data, list) else [data]})
+                    return df
+            except Exception:
+                # Último recurso: convertir todo a string
+                return pd.DataFrame({"Resultado": [str(data)]})
+
+    except Exception as e:
+        # Error en formateo, usar manejo robusto
+        try:
+            # Intentar crear DataFrame básico
+            if isinstance(data, list) and len(data) > 0:
+                if isinstance(data[0], (tuple, list)):
+                    # Lista de tuplas/listas
+                    num_cols = len(data[0]) if data[0] else 1
+                    column_names = [f"Columna_{i+1}" for i in range(num_cols)]
+                    return pd.DataFrame(data, columns=column_names)
+                else:
+                    # Lista simple
+                    return pd.DataFrame({"Resultado": data})
+            else:
+                # Caso genérico
+                return pd.DataFrame({"Resultado": [str(data)]})
+        except Exception:
+            # Último recurso absoluto
+            return pd.DataFrame({"Error": [f"No se pudieron procesar los datos: {str(data)[:100]}..."]})
 
 
 # ========================
