@@ -499,6 +499,7 @@ def process_user_input(prompt):
     # Detectar tipo de consulta
     query_type = is_database_query(prompt)
     
+    # Un solo bloque de respuesta del asistente
     with st.chat_message("assistant"):
         if query_type == "help":
             # Respuesta educativa
@@ -525,10 +526,9 @@ def process_user_input(prompt):
         elif query_type == "unclear":
             # Dar el beneficio de la duda pero advertir
             st.info("🤔 No estoy seguro si preguntas sobre datos. Intentaré como consulta de BD...")
-    
-    # Procesar como consulta de base de datos
-    if st.session_state.agent:
-        with st.chat_message("assistant"):
+        
+        # Procesar como consulta de base de datos
+        if st.session_state.agent:
             with st.spinner("Procesando consulta..."):
                 result = st.session_state.agent.process_query(prompt)
 
