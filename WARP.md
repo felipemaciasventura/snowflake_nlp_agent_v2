@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-This is a **Snowflake NLP Agent v2** - a Streamlit-based application that provides natural language processing capabilities for interacting with Snowflake databases. The application uses LangChain framework with Groq LLM services to enable natural language queries against Snowflake data warehouses.
+This is a **Snowflake NLP Agent v2** - a Streamlit-based application that provides natural language processing capabilities for interacting with Snowflake databases. The application uses LangChain framework with **dual LLM support** (Groq/Llama + Google Gemini) and **hybrid query detection** to enable intelligent natural language queries against Snowflake data warehouses.
 
 ## Development Commands
 
@@ -47,27 +47,50 @@ source venv/bin/activate && streamlit run streamlit_app.py --server.port 8502
 
 
 ### Environment Variables Required
+**Snowflake Configuration:**
 - `SNOWFLAKE_ACCOUNT`: Your Snowflake account URL
 - `SNOWFLAKE_USER`: Snowflake username
 - `SNOWFLAKE_PASSWORD`: Snowflake password  
 - `SNOWFLAKE_WAREHOUSE`: Snowflake warehouse name
 - `SNOWFLAKE_DATABASE`: Snowflake database name
 - `SNOWFLAKE_SCHEMA`: Snowflake schema (defaults to PUBLIC)
-- `GROQ_API_KEY`: Groq API key for LLM services
-- `MODEL_NAME`: LLM model name (defaults to llama-3.3-70b-versatile)
+
+**LLM Providers (configure at least one):**
+- `GROQ_API_KEY`: Groq API key for Llama models (option 1)
+- `GOOGLE_API_KEY`: Google API key for Gemini models (option 2)
+- `MODEL_NAME`: Groq model name (defaults to llama-3.3-70b-versatile)
+- `GEMINI_MODEL`: Gemini model name (defaults to gemini-1.5-flash)
+- `LLM_PROVIDER`: Provider selection - auto, groq, gemini (defaults to auto)
+
+**Optional:**
 - `DEBUG`: Enable debug mode (defaults to False)
 
 ## Usage Examples
 
-### Sample Natural Language Queries (Spanish)
-The application accepts Spanish natural language queries that are converted to SQL:
+### Sample Queries with Hybrid Detection
+The application intelligently detects and responds to different types of queries:
 
+**Database Queries (converted to SQL):**
 ```
 "Muéstrame las ventas de este mes"
-"¿Cuáles son los 10 clientes con más compras?"
+"?¿Cuáles son los 10 clientes con más compras?"
 "Lista todos los productos de la categoría electrónicos"
-"¿Cuál es el promedio de ingresos por región?"
+"?¿Cuál es el promedio de ingresos por región?"
 "Muestra los pedidos de los últimos 30 días"
+```
+
+**Help Queries (educational responses):**
+```
+"?¿En qué me puedes ayudar?"
+"?¿Qué puedes hacer?"
+"?¿Cómo funciona esta aplicación?"
+```
+
+**Off-topic Queries (friendly redirection):**
+```
+"?¿Cómo está el clima?"
+"Cuéntame un chiste"
+"?¿Qué películas recomiendas?"
 ```
 
 ### Expected Database Schema
@@ -112,7 +135,8 @@ snowflake_nlp_agent_v2/
 ### Key Technology Stack
 - **Streamlit**: Web application framework
 - **LangChain**: LLM framework and orchestration
-- **Groq**: LLM API service (Llama models)
+- **Groq**: LLM API service (Llama models) ✅
+- **Google Gemini**: LLM API service (Gemini models) ✅
 - **Snowflake**: Data warehouse with native Python connector and SQLAlchemy
 - **Pandas**: Data manipulation and analysis
 - **Plotly**: Data visualization
@@ -138,10 +162,15 @@ snowflake_nlp_agent_v2/
 - **Real-time Logging**: Step-by-step query processing logs displayed in UI for transparency
 
 ### Key Features Implemented
-- **Natural Language Processing**: Complete Spanish-to-SQL conversion using Llama 3.3 70B via Groq
+- **Dual LLM Support**: Groq/Llama 3.3 70B + Google Gemini 1.5 Flash with auto-detection
+- **Hybrid Query Detection**: Intelligent classification of database vs help vs off-topic queries
+- **Educational Responses**: Comprehensive user guidance with examples and capabilities
+- **Friendly Redirection**: Amigable responses for off-topic queries with gentle redirection
+- **Natural Language Processing**: Complete Spanish-to-SQL conversion with multiple LLM options
 - **Interactive Chat Interface**: Real-time conversation with database using Streamlit chat components
 - **Smart Result Formatting**: Intelligent DataFrame formatting with monetary values and user-friendly column names
 - **Robust SQL Parsing**: Advanced parsing of SQL result strings with Decimal support
+- **Dynamic System Info**: Real-time display of active LLM model and provider status
 - **Connection Management**: Robust Snowflake connection handling with status monitoring
 - **Direct SQL Execution**: Direct execution of generated SQL against Snowflake for real data retrieval
 - **Data Visualization**: Interactive pandas DataFrames with full-width tables and record counters
@@ -149,11 +178,20 @@ snowflake_nlp_agent_v2/
 - **Session Management**: Persistent chat history and connection state
 - **Production Ready**: Clean codebase without debug statements, optimized for deployment
 
-### Recent Updates (v2.1)
-✅ **Latest Improvements**:
+### Recent Updates (v2.2)
+✅ **Latest Major Improvements**:
+- **Dual LLM Provider Support**: Added Google Gemini alongside existing Groq/Llama support
+- **Hybrid Query Detection**: Intelligent query classification (database/help/off-topic)
+- **Educational Interface**: Comprehensive help responses with usage examples
+- **Friendly User Experience**: Amigable redirection for off-topic queries
+- **Dynamic System Display**: Real-time LLM provider and model information
+- **Auto-detection Logic**: Automatic LLM provider selection based on available credentials
+- **Robust Error Handling**: Enhanced DataFrame constructor error management
+
+✅ **Previous Improvements (v2.1)**:
 - **Smart Result Formatting**: Implemented intelligent DataFrame formatting with monetary values
 - **Robust Data Parsing**: Added parsing of SQL result strings with Decimal object support
-- **LLM Model Update**: Updated to llama-3.3-70b-versatile for better performance
+- **LLM Model Update**: Updated to llama-3.3-70b-versatile + gemini-1.5-flash
 - **Direct SQL Execution**: Enhanced SQL execution pipeline for real data retrieval
 - **UI/UX Improvements**: Full-width tables, record counters, and cleaner interface
 - **Production Optimization**: Removed debug statements and optimized for deployment
@@ -162,15 +200,19 @@ snowflake_nlp_agent_v2/
 ### Development Status
 ✅ **Completed Components**:
 - Database layer (connection + schema inspection) with connection string support
-- NLP agent (LangChain + Groq integration) with llama-3.3-70b-versatile
-- Main Streamlit application interface with smart formatting
-- Configuration management with updated model defaults
+- NLP agent with dual LLM support (Groq + Gemini) and auto-detection
+- Hybrid query processing with intelligent detection and appropriate responses
+- Main Streamlit application interface with smart formatting and dynamic info
+- Configuration management with dual provider support and validation
 - Logging and error handling with production-ready optimization
 - Result parsing and visualization with pandas DataFrames
+- Educational user interface with comprehensive help system
 
 🔄 **Areas for Enhancement**:
-- Test suite implementation 
+- Test suite implementation with provider-specific testing
 - Data visualization charts and analytics beyond tables
 - Query optimization and caching mechanisms
-- Multi-language support beyond Spanish
-- Additional UI components and features
+- Multi-language support beyond Spanish (interface + NLP)
+- Additional UI components and advanced analytics features
+- Query history and favorites functionality
+- Advanced security features and user management

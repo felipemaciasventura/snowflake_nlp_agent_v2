@@ -1,6 +1,6 @@
 # 🤖 Snowflake NLP Agent v2
 
-Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain y Groq LLM para conversión automática de texto a SQL.
+Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain con soporte dual para Groq/Llama y Google Gemini para conversión automática de texto a SQL con detección híbrida de consultas.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
@@ -10,10 +10,11 @@ Una aplicación web inteligente construida con Streamlit que permite realizar co
 ## 🌟 Características Principales
 
 - **💬 Interfaz de Chat Intuitiva**: Conversación natural con tu base de datos
-- **🧠 Procesamiento NLP Avanzado**: Convierte preguntas en español a consultas SQL precisas
+- **🧠 Procesamiento NLP Híbrido**: Detección inteligente de consultas (BD vs ayuda vs fuera de contexto)
+- **🔄 Soporte Dual de LLM**: Compatible con Groq/Llama y Google Gemini con auto-detección
 - **📊 Visualización Inteligente**: Formateo automático de resultados con tablas interactivas
 - **🔒 Conexión Segura**: Integración robusta con Snowflake usando credenciales encriptadas
-- **⚡ Rendimiento Optimizado**: Modelo Llama 3.3 70B Versatile para respuestas rápidas y precisas
+- **🎯 Respuestas Educativas**: Guía inteligente para usuarios con ejemplos y redirección amigable
 - **🎨 Interfaz Moderna**: Diseño responsivo con Streamlit y componentes interactivos
 
 ## 🚀 Inicio Rápido
@@ -22,7 +23,9 @@ Una aplicación web inteligente construida con Streamlit que permite realizar co
 
 - Python 3.8+
 - Cuenta de Snowflake con credenciales de acceso
-- API Key de Groq para servicios LLM
+- **API Key de Groq** (opción 1) para modelos Llama
+- **API Key de Google Gemini** (opción 2) para modelos Gemini
+- Al menos uno de los dos proveedores LLM configurado
 
 ### 1. Instalación
 
@@ -61,9 +64,17 @@ SNOWFLAKE_WAREHOUSE=tu-warehouse
 SNOWFLAKE_DATABASE=tu-database
 SNOWFLAKE_SCHEMA=PUBLIC
 
-# Groq LLM API
+# Proveedores LLM - Configurar al menos uno
+# Groq (opción 1)
 GROQ_API_KEY=tu-groq-api-key
 MODEL_NAME=llama-3.3-70b-versatile
+
+# Google Gemini (opción 2) 
+GOOGLE_API_KEY=tu-google-api-key
+GEMINI_MODEL=gemini-1.5-flash
+
+# Selección de proveedor (auto, groq, gemini)
+LLM_PROVIDER=auto
 
 # Opcional
 DEBUG=False
@@ -83,15 +94,34 @@ La aplicación estará disponible en `http://localhost:8501`
 
 ## 💻 Ejemplos de Uso
 
-### Consultas en Español
+### 🔍 Consultas de Bases de Datos
 
 ```
-🔹 "¿Cuáles son los 10 pedidos con mayor valor?"
+🔹 "?¿Cuáles son los 10 pedidos con mayor valor?"
 🔹 "Muéstrame las ventas de este mes"
-🔹 "¿Cuántos clientes hay en total?"
+🔹 "?¿Cuántos clientes hay en total?"
 🔹 "Lista los productos más vendidos"
-🔹 "¿Qué base de datos estoy usando?"
+🔹 "?¿Qué base de datos estoy usando?"
 🔹 "Muestra las tablas disponibles"
+🔹 "?¿Cuál es el promedio de ingresos por región?"
+```
+
+### 🎯 Consultas de Ayuda (Respuesta Educativa)
+
+```
+🔹 "?¿En qué me puedes ayudar?"
+🔹 "?¿Qué puedes hacer?"
+🔹 "?¿Cómo funciona esta aplicación?"
+🔹 "Muéstrame ejemplos de lo que puedes hacer"
+```
+
+### 🚫 Consultas Fuera de Contexto (Redirección Amigable)
+
+```
+🔹 "?¿Cómo está el clima?"
+🔹 "Cuéntame un chiste"
+🔹 "?¿Qué películas recomiendas?"
+→ Se redirige amigablemente a funcionalidades de BD
 ```
 
 ### Resultados Automáticos
@@ -126,10 +156,11 @@ snowflake_nlp_agent_v2/
 ### Tecnologías Clave
 
 | Tecnología | Propósito | Versión |
-|------------|-----------|---------|
+|------------|-----------|----------|
 | **Streamlit** | Framework web | 1.28+ |
 | **LangChain** | Orquestación LLM | 0.1+ |
-| **Groq** | API LLM (Llama 3.3) | Latest |
+| **Groq** | API LLM (Llama 3.3) ✅ | Latest |
+| **Google Gemini** | API LLM (Gemini 1.5) ✅ | Latest |
 | **Snowflake** | Data Warehouse | Connector 3.0+ |
 | **Pandas** | Manipulación datos | 1.5+ |
 | **SQLAlchemy** | ORM y conexiones | 2.0+ |
@@ -146,8 +177,13 @@ snowflake_nlp_agent_v2/
 | `SNOWFLAKE_WAREHOUSE` | Warehouse a usar | ✅ | `COMPUTE_WH` |
 | `SNOWFLAKE_DATABASE` | Base de datos | ✅ | `PROD_DB` |
 | `SNOWFLAKE_SCHEMA` | Schema por defecto | ❌ | `PUBLIC` |
-| `GROQ_API_KEY` | API Key Groq | ✅ | `gsk_...` |
-| `MODEL_NAME` | Modelo LLM | ❌ | `llama-3.3-70b-versatile` |
+| `GROQ_API_KEY` | API Key Groq (opción 1) | 🔄 | `gsk_...` |
+| `GOOGLE_API_KEY` | API Key Google Gemini (opción 2) | 🔄 | `AIza...` |
+| `MODEL_NAME` | Modelo Groq | ❌ | `llama-3.3-70b-versatile` |
+| `GEMINI_MODEL` | Modelo Gemini | ❌ | `gemini-1.5-flash` |
+| `LLM_PROVIDER` | Selección proveedor | ❌ | `auto`, `groq`, `gemini` |
+
+**Nota:** 🔄 = Al menos uno de los dos proveedores LLM debe estar configurado
 
 ### Comandos de Desarrollo
 
@@ -228,23 +264,31 @@ Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una
 
 14. **Panel de Logs**: Durante todo el proceso, se registran logs detallados que se muestran en el panel lateral, ofreciendo total transparencia sobre lo que hizo el sistema, desde la SQL que generó hasta los resultados que obtuvo.
 
-## 🔄 Actualizaciones Recientes (v2.1)
+## 🔄 Actualizaciones Recientes (v2.2)
 
-### ✅ Nuevas Características
+### ✅ Nuevas Características Principales
+
+- **🔄 Soporte Dual de LLM**: Groq/Llama + Google Gemini con auto-detección
+- **🧠 Detección Híbrida**: Clasificación inteligente de consultas (BD vs ayuda vs fuera de contexto)
+- **🎯 Respuestas Educativas**: Guía completa con ejemplos para usuarios nuevos
+- **🚀 Redirección Amigable**: Respuestas amigables para consultas fuera de contexto
+- **📊 Información Dinámica**: Sidebar muestra el modelo LLM activo en tiempo real
+
+### ✅ Mejoras Anteriores (v2.1)
 
 - **🎯 Formateo Inteligente**: Reconocimiento automático de tipos de consulta
 - **💹 Formato Monetario**: Visualización automática de valores financieros
 - **🔧 Parsing Robusto**: Manejo avanzado de objetos Decimal de Snowflake
-- **⚡ Modelo Actualizado**: Llama 3.3 70B Versatile para mejor rendimiento
+- **⚡ Modelo Actualizado**: Llama 3.3 70B Versatile + Gemini 1.5 Flash
 - **🖥️ UI Mejorada**: Tablas de ancho completo y contadores de registros
-- **🏭 Producción Lista**: Código limpio sin debug statements
 
 ### 🐛 Correcciones
 
 - ✅ Método obsoleto `__call__` reemplazado por `invoke`
+- ✅ Manejo robusto de errores DataFrame constructor
 - ✅ Parsing de strings con resultados SQL complejos
-- ✅ Manejo de conexiones Snowflake mejorado
-- ✅ Visualización de datos en formato tabla legible
+- ✅ Configuración dinámica de proveedores LLM
+- ✅ Detección automática de modelos disponibles
 
 ## 🤝 Contribución
 
