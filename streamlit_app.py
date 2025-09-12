@@ -7,6 +7,9 @@ import ast
 from src.agent.nlp_agent import SnowflakeNLPAgent
 from src.database.snowflake_conn import SnowflakeConnection
 
+# Constantes de regex
+DECIMAL_REGEX = r"Decimal\('([^']+)'\)"
+
 # Cargar variables de entorno
 load_dotenv()
 
@@ -175,7 +178,7 @@ def parse_sql_result_string(result_string):
         # Caso 1: Lista de tuplas [(...), (...)]
         if cleaned_string.startswith("[") and cleaned_string.endswith("]"):
             # Reemplazar Decimal('...') con float
-            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r"\1", cleaned_string)
+            cleaned_string = re.sub(DECIMAL_REGEX, r"\1", cleaned_string)
             # Reemplazar None con 'None' para evaluación segura
             cleaned_string = re.sub(r"\bNone\b", "'None'", cleaned_string)
 
@@ -187,7 +190,7 @@ def parse_sql_result_string(result_string):
         elif cleaned_string.startswith("(") and cleaned_string.endswith(")"):
             # Convertir tupla simple a lista de tuplas
             cleaned_string = f"[{cleaned_string}]"
-            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r"\1", cleaned_string)
+            cleaned_string = re.sub(DECIMAL_REGEX, r"\1", cleaned_string)
             cleaned_string = re.sub(r"\bNone\b", "'None'", cleaned_string)
 
             parsed_data = ast.literal_eval(cleaned_string)
@@ -199,7 +202,7 @@ def parse_sql_result_string(result_string):
             if not cleaned_string.startswith("["):
                 cleaned_string = f"[{cleaned_string}]"
 
-            cleaned_string = re.sub(r"Decimal\('([^']+)'\)", r"\1", cleaned_string)
+            cleaned_string = re.sub(DECIMAL_REGEX, r"\1", cleaned_string)
             cleaned_string = re.sub(r"\bNone\b", "'None'", cleaned_string)
 
             parsed_data = ast.literal_eval(cleaned_string)
@@ -433,7 +436,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                 # Último recurso: convertir todo a string
                 return pd.DataFrame({"Resultado": [str(data)]})
 
-    except Exception as e:
+    except Exception:
         # Error en formateo, usar manejo robusto
         try:
             # Intentar crear DataFrame básico
@@ -459,26 +462,71 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
 # ========================
 
 
+def _render_single_message(message):
+    """Renderiza un mensaje individual del historial."""
+    with st.chat_message(message["role"]):
+        is_assistant_with_data = message["role"] == "assistant" and "data" in message
+        if not is_assistant_with_data:
+            st.write(message["content"])
+            return
+
+        st.write(message["content"])
+        if not message["data"].empty:
+            st.dataframe(message["data"], width='stretch')
+            num_rows = len(message["data"])
+            st.caption(
+                f"📊 {num_rows} registro{'s' if num_rows != 1 else ''} mostrado{'s' if num_rows != 1 else ''}"
+            )
+
+
 def display_chat_messages():
     """Muestra el historial de mensajes del chat con tablas y contadores."""
     st.header("💬 Chat con tu Base de Datos")
 
     # Mostrar historial de mensajes
     for message in st.session_state.messages:
-        with st.chat_message(message["role"]):
-            if message["role"] == "assistant" and "data" in message:
-                st.write(message["content"])
-                if not message["data"].empty:
-                    st.dataframe(message["data"], width='stretch')
-                    # Mostrar número de registros
-                    num_rows = len(message["data"])
-                    st.caption(
-                        f"📊 {num_rows} registro{
-                            's' if num_rows != 1 else ''} mostrado{
-                            's' if num_rows != 1 else ''}"
-                    )
-            else:
-                st.write(message["content"])
+        _render_single_message(message)
+
+
+def _append_assistant_message(content, df=None):
+    """Agrega un mensaje del asistente al historial con un DataFrame opcional."""
+    st.session_state.messages.append({
+        "role": "assistant",
+        "content": content,
+        "data": df if df is not None else pd.DataFrame(),
+    })
+
+
+def _render_successful_result(result, prompt):
+    """Renderiza un resultado exitoso del agente y actualiza el historial."""
+    response_content = "Consulta ejecutada exitosamente:"
+    st.write(response_content)
+
+    if not result.get("result"):
+        st.write("No se encontraron resultados.")
+        _append_assistant_message("No se encontraron resultados.")
+        return
+
+    try:
+        df = format_sql_result_to_dataframe(
+            result["result"], result.get("sql_query", ""), prompt
+        )
+        st.dataframe(df, width='stretch')
+        num_rows = len(df)
+        st.caption(
+            f"📊 {num_rows} registro{'s' if num_rows != 1 else ''} encontrado{'s' if num_rows != 1 else ''}"
+        )
+        _append_assistant_message(response_content, df)
+    except Exception:
+        result_text = str(result.get("result"))
+        st.code(result_text)
+        _append_assistant_message(f"{response_content}\n{result_text}")
+
+
+def _render_error_result(error_text):
+    """Renderiza un error del agente y actualiza el historial."""
+    st.error(error_text)
+    _append_assistant_message(error_text)
 
 
 def process_user_input(prompt):
@@ -502,97 +550,32 @@ def process_user_input(prompt):
     # Un solo bloque de respuesta del asistente
     with st.chat_message("assistant"):
         if query_type == "help":
-            # Respuesta educativa
             help_resp = get_help_response()
             st.markdown(help_resp["message"])
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": help_resp["message"],
-                "data": pd.DataFrame()
-            })
+            _append_assistant_message(help_resp["message"])
             return
-            
-        elif query_type == "off_topic":
-            # Respuesta de redirección
+
+        if query_type == "off_topic":
             redirect_resp = get_redirect_response()
             st.markdown(redirect_resp["message"])
-            st.session_state.messages.append({
-                "role": "assistant",
-                "content": redirect_resp["message"],
-                "data": pd.DataFrame()
-            })
+            _append_assistant_message(redirect_resp["message"])
             return
-            
-        elif query_type == "unclear":
-            # Dar el beneficio de la duda pero advertir
+
+        if query_type == "unclear":
             st.info("🤔 No estoy seguro si preguntas sobre datos. Intentaré como consulta de BD...")
-        
-        # Procesar como consulta de base de datos
-        if st.session_state.agent:
-            with st.spinner("Procesando consulta..."):
-                result = st.session_state.agent.process_query(prompt)
 
-                if result["success"]:
-                    response_content = "Consulta ejecutada exitosamente:"
-                    st.write(response_content)
+        if not st.session_state.agent:
+            _render_error_result("Error: No hay agente inicializado")
+            return
 
-                    # Mostrar datos si existen
-                    if result["result"]:
-                        try:
-                            # Usar la función de formateo inteligente
-                            df = format_sql_result_to_dataframe(
-                                result["result"], result.get("sql_query", ""), prompt
-                            )
+        with st.spinner("Procesando consulta..."):
+            result = st.session_state.agent.process_query(prompt)
 
-                            # Mostrar la tabla formateada
-                            st.dataframe(df, width='stretch')
+        if result.get("success"):
+            _render_successful_result(result, prompt)
+            return
 
-                            # Mostrar información adicional
-                            num_rows = len(df)
-                            st.caption(
-                                f"📊 {num_rows} registro{
-                                    's' if num_rows != 1 else ''} encontrado{
-                                    's' if num_rows != 1 else ''}"
-                            )
-
-                            # Agregar al historial con datos
-                            st.session_state.messages.append(
-                                {
-                                    "role": "assistant",
-                                    "content": response_content,
-                                    "data": df,
-                                }
-                            )
-                        except Exception:
-                            # Si falla la creación del DataFrame, mostrar como texto
-                            result_text = str(result["result"])
-                            st.code(result_text)
-                            st.session_state.messages.append(
-                                {
-                                    "role": "assistant",
-                                    "content": f"{response_content}\n{result_text}",
-                                    "data": pd.DataFrame(),
-                                }
-                            )
-                    else:
-                        st.write("No se encontraron resultados.")
-                        st.session_state.messages.append(
-                            {
-                                "role": "assistant",
-                                "content": "No se encontraron resultados.",
-                                "data": pd.DataFrame(),
-                            }
-                        )
-                else:
-                    error_msg = f"Error: {result['error']}"
-                    st.error(error_msg)
-                    st.session_state.messages.append(
-                        {
-                            "role": "assistant",
-                            "content": error_msg,
-                            "data": pd.DataFrame(),
-                        }
-                    )
+        _render_error_result(f"Error: {result.get('error')}")
 
 
 def display_logs_panel():
