@@ -3,14 +3,47 @@
 ## 🗂️ Resumen de Commits y Evolución del Proyecto
 
 ### 📊 Estadísticas Generales
-- **🕒 Período de desarrollo**: Diciembre 2024 - Enero 2025
-- **🔢 Total commits**: 4 commits principales
-- **📁 Archivos principales modificados**: 8 archivos
-- **🚀 Versión actual**: v2.1 (Production Ready)
+- **🕒 Período de desarrollo**: Diciembre 2024 - Septiembre 2025
+- **🔢 Total commits**: 5 commits principales
+- **📁 Archivos principales modificados**: 10 archivos
+- **🚀 Versión actual**: v2.3 (Ollama Integration Ready)
 
 ---
 
 ## 🕰️ Cronología Detallada
+
+### 🎯 **Commit #5** - `17522a8` (HEAD -> master)
+**📅 Fecha**: Septiembre 2025  
+**🏷️ Tipo**: `feat` - Integración Ollama  
+**📝 Título**: `Integrate Ollama local model support with CodeLlama 7B-Instruct`
+
+#### ✅ Cambios Implementados:
+- **🏠 Integración Ollama completa** para modelos LLM locales
+- **🔄 Soporte triple de LLM**: Groq + Gemini + Ollama con auto-detección
+- **🤖 CodeLlama 7B-Instruct** especializado en generación SQL/código
+- **📝 Sistema avanzado de limpieza SQL** para formato markdown de CodeLlama
+- **🔒 Prioridad local-first**: Ollama > Gemini > Groq
+- **🚫 Cero costos API** con procesamiento 100% local
+- **📚 Documentación actualizada** README.md y WARP.md completos
+
+#### 📁 Archivos Afectados:
+```
+modified:   .env.example
+modified:   README.md
+modified:   WARP.md
+modified:   src/agent/nlp_agent.py
+modified:   src/utils/config.py
+modified:   streamlit_app.py
+```
+
+#### 🔧 Detalles Técnicos:
+- **Función `clean_sql_response()`**: Limpieza avanzada de respuestas markdown
+- **Auto-detección inteligente**: Selección basada en disponibilidad de servicios
+- **Compatibilidad langchain-ollama**: Imports compatibles para transiciones
+- **Prompts especializados**: Optimización específica para CodeLlama
+- **Error handling mejorado**: Conexión y validación de modelos locales
+
+---
 
 ### 🎯 **Commit #4** - `a65c74b` (HEAD -> master)
 **📅 Fecha**: Enero 2025  
@@ -176,7 +209,17 @@ python-dotenv>=1.0.0
 
 ## 🚀 **Funcionalidades Destacadas por Versión**
 
-### 🌟 **v2.1 - Production Ready** (Actual)
+### 🎆 **v2.3 - Ollama Integration** (Actual)
+- ✅ **Ollama Local Model Support**: CodeLlama 7B-Instruct para generación SQL especializada
+- ✅ **Triple LLM Provider**: Groq + Gemini + Ollama con selección inteligente
+- ✅ **Advanced SQL Cleaning**: Sistema robusto para formato markdown de CodeLlama
+- ✅ **Local-First Priority**: Privacidad total con procesamiento local
+- ✅ **Zero API Costs**: Opción gratuita con modelos locales
+- ✅ **Specialized Prompts**: Optimización específica para cada modelo LLM
+- ✅ **Enhanced Documentation**: Guías completas para setup local
+- ✅ **Robust Error Handling**: Validación de conectividad con modelos locales
+
+### 🌟 **v2.1 - Production Ready**
 - ✅ **Smart Result Formatting**: Reconocimiento automático de tipos de consulta
 - ✅ **Robust Data Parsing**: Manejo avanzado de objetos Decimal
 - ✅ **Monetary Formatting**: Visualización automática `$555,285.16`
@@ -220,7 +263,7 @@ python-dotenv>=1.0.0
 ```
 🎬 INICIO
 │
-├─ 36e7312 🏗️ [Foundation] 
+├─ 36e7312 🏢 [Foundation] 
 │   └─ Estructura base + documentación inicial
 │
 ├─ 52f9de9 🚀 [Core Implementation]
@@ -229,10 +272,13 @@ python-dotenv>=1.0.0
 ├─ 4473a90 ✨ [Enhancement]
 │   └─ Smart formatting + LLM upgrade + UI improvements
 │
-└─ a65c74b 📚 [Documentation]
-    └─ Professional docs + README + architecture guides
+├─ a65c74b 📚 [Documentation]
+│   └─ Professional docs + README + architecture guides
+│
+└─ 17522a8 🏠 [Ollama Integration]
+    └─ Local model support + Triple LLM + Advanced SQL cleaning
 
-🎯 ACTUAL: Production Ready v2.1
+🎯 ACTUAL: Ollama Integration Ready v2.3
 ```
 
 ---
@@ -258,18 +304,22 @@ python-dotenv>=1.0.0
 
 ## 📋 **Resumen Ejecutivo**
 
-El **Snowflake NLP Agent v2** ha evolucionado desde un proyecto base hasta una **aplicación production-ready** en **4 commits estratégicos**, implementando:
+El **Snowflake NLP Agent v2** ha evolucionado desde un proyecto base hasta una **aplicación enterprise-ready** en **5 commits estratégicos**, implementando:
 
-- **🧠 Inteligencia Artificial avanzada** con Llama 3.3 70B
+- **🏠 Modelos LLM locales** con Ollama + CodeLlama 7B-Instruct
+- **🔄 Soporte triple LLM** con Groq + Gemini + Ollama
+- **🧠 Inteligencia Artificial avanzada** con múltiples proveedores
 - **🎨 Interfaz usuario moderna** con Streamlit
 - **📊 Formateo inteligente** de resultados SQL
 - **🗄️ Conectividad robusta** con Snowflake
 - **📚 Documentación profesional** completa
-- **🏗️ Arquitectura escalable** y mantenible
+- **🏢 Arquitectura escalable** y mantenible
+- **🔒 Privacidad total** con procesamiento local
+- **🚫 Cero costos API** con modelos locales
 
-La aplicación permite a usuarios realizar **consultas en español natural** contra bases de datos Snowflake, con **visualización automática** de resultados y **trazabilidad completa** del proceso.
+La aplicación permite a usuarios realizar **consultas en español natural** contra bases de datos Snowflake, con **visualización automática** de resultados, **trazabilidad completa** del proceso y **opciones de privacidad** con modelos locales.
 
-**🎯 Estado actual: ✅ Producción lista para despliegue**
+**🎯 Estado actual: ✅ Ollama Integration Ready v2.3**
 
 ---
 
