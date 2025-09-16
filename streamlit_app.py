@@ -86,15 +86,23 @@ def is_database_query(user_input):
         "select", "database", "schema", "registros", "filas", "columnas",
         "pedidos", "ordenes", "productos", "categorías", "ingresos", "facturación",
         "análisis", "reporte", "estadísticas", "máximo", "mínimo", "buscar",
-        "filtrar", "agrupar", "ordenar", "top", "mayor", "menor", "últimos", "últimas"
+        "filtrar", "agrupar", "ordenar", "top", "mayor", "menor", "últimos", "últimas",
+        # Palabras adicionales para consultas complejas
+        "ciudad", "ciudades", "propiedades", "propiedad", "precio", "precios", "ranking",
+        "rank", "posición", "posiciones", "cada", "obtén", "obtener", "incluir", "solo",
+        "dólares", "valores", "valor", "transacciones", "transaction", "locations",
+        "ubicación", "ubicaciones", "caros", "caras", "expensive", "más", "menos",
+        "join", "inner", "left", "right", "where", "order by", "group by", "partition",
+        "over", "window", "función", "funciones", "aggregate", "aggregation"
     ]
     
-    # Palabras clave fuera de contexto  
+    # Palabras clave fuera de contexto (ser más específico para evitar conflictos)
     off_topic_keywords = [
-        "clima", "tiempo", "noticias", "receta", "traducir", "como estas", "que tal",
-        "chiste", "historia", "película", "música", "deporte", "política",
-        "salud", "medicina", "viaje", "restaurante", "comprar", "precio",
-        "horario", "dirección", "teléfono", "email", "programar", "código"
+        "clima", "tiempo atmosférico", "noticias", "receta de cocina", "traducir idioma", "como estas", "que tal",
+        "chiste", "historia personal", "película", "música", "deporte", "política",
+        "salud personal", "medicina", "viaje turístico", "restaurante", "comprar ropa",
+        "horario personal", "dirección postal", "teléfono personal", "email personal", "programar cita"
+        # Removido "precio" y "código" ya que pueden ser parte de consultas de BD
     ]
     
     # Preguntas de ayuda/información (caso especial)
@@ -116,10 +124,22 @@ def is_database_query(user_input):
     if any(keyword in user_input_lower for keyword in db_keywords):
         return "database"
     
-    # Si no es claro, asumir que podría ser de BD (dar el beneficio de la duda)
-    # pero con precaución
+    # Si no es claro, analizar más profundamente
     if len(user_input.split()) < 3:  # Muy corto, probablemente no es consulta DB
         return "unclear"
+    
+    # Para consultas largas (>10 palabras), probablemente son consultas de BD complejas
+    if len(user_input.split()) > 10:
+        # Verificar si tiene estructura de consulta de datos
+        data_structure_indicators = [
+            "para cada", "obtener", "obtener un", "mostrar", "listar", "encontrar",
+            "calcular", "sumar", "contar", "agrupar por", "ordenar por",
+            "con precio", "con valor", "mayor a", "menor a", "igual a",
+            "incluir", "excluir", "solo", "solamente", "únicamente"
+        ]
+        
+        if any(indicator in user_input_lower for indicator in data_structure_indicators):
+            return "database"
     
     return "database"  # Por defecto, intentar como consulta de BD
 
