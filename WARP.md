@@ -4,7 +4,7 @@ This file provides guidance to WARP (warp.dev) when working with code in this re
 
 ## Project Overview
 
-This is a **Snowflake NLP Agent v2** - a Streamlit-based application that provides natural language processing capabilities for interacting with Snowflake databases. The application uses LangChain framework with **dual LLM support** (Groq/Llama + Google Gemini) and **hybrid query detection** to enable intelligent natural language queries against Snowflake data warehouses.
+This is a **Snowflake NLP Agent v2** - a Streamlit-based application that provides natural language processing capabilities for interacting with Snowflake databases. The application uses LangChain framework with **triple LLM support** (Groq/Llama + Google Gemini + Ollama local models) and **hybrid query detection** to enable intelligent natural language queries against Snowflake data warehouses.
 
 ## Development Commands
 
@@ -23,7 +23,7 @@ pip install -r requirements.txt
 ```bash
 # Copy environment template and configure
 cp .env.example .env
-# Edit .env with your Snowflake and Groq credentials
+# Edit .env with your Snowflake and LLM provider credentials
 ```
 
 ### Running the Application
@@ -58,9 +58,11 @@ source venv/bin/activate && streamlit run streamlit_app.py --server.port 8502
 **LLM Providers (configure at least one):**
 - `GROQ_API_KEY`: Groq API key for Llama models (option 1)
 - `GOOGLE_API_KEY`: Google API key for Gemini models (option 2)
+- `OLLAMA_BASE_URL`: Ollama server URL for local models (option 3)
+- `OLLAMA_MODEL`: Ollama model name for local inference
 - `MODEL_NAME`: Groq model name (defaults to llama-3.3-70b-versatile)
 - `GEMINI_MODEL`: Gemini model name (defaults to gemini-1.5-flash)
-- `LLM_PROVIDER`: Provider selection - auto, groq, gemini (defaults to auto)
+- `LLM_PROVIDER`: Provider selection - auto, groq, gemini, ollama (defaults to gemini)
 
 **Optional:**
 - `DEBUG`: Enable debug mode (defaults to False)
@@ -127,7 +129,7 @@ snowflake_nlp_agent_v2/
 - **`ErrorHandler`** (`helpers.py`): Robust error handling with context-aware exception management and connection validation.
 
 #### Agent Layer (`src/agent/`)
-- **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain and Groq for natural language to SQL conversion. Features custom Spanish prompts, SQLDatabaseChain for query generation, and comprehensive error handling with step-by-step logging.
+- **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain with triple provider support (Groq + Gemini + Ollama) for natural language to SQL conversion. Features custom Spanish prompts optimized for each model, SQLDatabaseChain for query generation, advanced SQL cleaning for CodeLlama markdown format, and comprehensive error handling with step-by-step logging.
 
 #### UI Layer (`streamlit_app.py`)
 - **Main Application** (`streamlit_app.py`): Complete Streamlit web interface with chat functionality, real-time query processing, connection management, and interactive data visualization including chat interface, sidebar configuration, connection status, processing logs panel, and data display with pandas DataFrames.
@@ -137,6 +139,7 @@ snowflake_nlp_agent_v2/
 - **LangChain**: LLM framework and orchestration
 - **Groq**: LLM API service (Llama models) ✅
 - **Google Gemini**: LLM API service (Gemini models) ✅
+- **Ollama**: Local LLM inference (CodeLlama) ✅
 - **Snowflake**: Data warehouse with native Python connector and SQLAlchemy
 - **Pandas**: Data manipulation and analysis
 - **Plotly**: Data visualization
@@ -157,12 +160,12 @@ snowflake_nlp_agent_v2/
 - **Connection Pooling**: SQLAlchemy NullPool prevents Snowflake connection pool conflicts
 - **Error Handling**: Dual-layer error management (Python logging + Streamlit UI feedback)
 - **Schema Inspection**: Supports both specific schema queries and cross-schema discovery
-- **LLM Configuration**: Uses Llama 3.3 70B Versatile model with temperature=0.1 for consistent SQL generation
+- **LLM Configuration**: Uses Gemini 1.5 Flash (default), Llama 3.3 70B Versatile, or CodeLlama 7B-Instruct with temperature=0.1 for consistent SQL generation
 - **Session Persistence**: Chat history and connection state maintained across user interactions
 - **Real-time Logging**: Step-by-step query processing logs displayed in UI for transparency
 
 ### Key Features Implemented
-- **Dual LLM Support**: Groq/Llama 3.3 70B + Google Gemini 1.5 Flash with auto-detection
+- **Triple LLM Support**: Groq/Llama 3.3 70B + Google Gemini 1.5 Flash + Ollama CodeLlama 7B with auto-detection and local-first priority
 - **Hybrid Query Detection**: Intelligent classification of database vs help vs off-topic queries
 - **Educational Responses**: Comprehensive user guidance with examples and capabilities
 - **Friendly Redirection**: Amigable responses for off-topic queries with gentle redirection
@@ -178,9 +181,16 @@ snowflake_nlp_agent_v2/
 - **Session Management**: Persistent chat history and connection state
 - **Production Ready**: Clean codebase without debug statements, optimized for deployment
 
-### Recent Updates (v2.2)
+### Recent Updates (v2.3)
 ✅ **Latest Major Improvements**:
-- **Dual LLM Provider Support**: Added Google Gemini alongside existing Groq/Llama support
+- **Ollama Integration**: Complete support for local models (CodeLlama 7B-Instruct) with privacy-first approach
+- **Triple LLM Provider Support**: Groq/Llama + Google Gemini + Ollama with intelligent auto-detection (Ollama > Gemini > Groq)
+- **Advanced SQL Cleaning**: Robust markdown format handling for CodeLlama responses with multi-pattern recognition
+- **Local Model Optimization**: Specialized prompts and processing pipeline for CodeLlama SQL generation
+- **Provider Priority System**: Local-first architecture prioritizing privacy and cost-effectiveness
+
+### Recent Updates (v2.2)
+✅ **Previous Major Improvements**:
 - **Hybrid Query Detection**: Intelligent query classification (database/help/off-topic)
 - **Educational Interface**: Comprehensive help responses with usage examples
 - **Friendly User Experience**: Amigable redirection for off-topic queries
@@ -200,13 +210,15 @@ snowflake_nlp_agent_v2/
 ### Development Status
 ✅ **Completed Components**:
 - Database layer (connection + schema inspection) with connection string support
-- NLP agent with dual LLM support (Groq + Gemini) and auto-detection
+- NLP agent with triple LLM support (Groq + Gemini + Ollama) and auto-detection
 - Hybrid query processing with intelligent detection and appropriate responses
 - Main Streamlit application interface with smart formatting and dynamic info
-- Configuration management with dual provider support and validation
+- Configuration management with triple provider support and validation
 - Logging and error handling with production-ready optimization
 - Result parsing and visualization with pandas DataFrames
 - Educational user interface with comprehensive help system
+- Advanced SQL cleaning system for CodeLlama markdown format
+- Local model integration with Ollama server connectivity
 
 🔄 **Areas for Enhancement**:
 - Test suite implementation with provider-specific testing

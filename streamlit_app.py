@@ -47,7 +47,12 @@ def setup_sidebar():
         from src.utils.config import config
         provider = config.get_available_llm_provider()
         
-        if provider == "gemini":
+        if provider == "ollama":
+            model_info = f"LLM: {config.OLLAMA_MODEL} (Ollama Local)"
+            # Información adicional para Ollama
+            st.sidebar.success(f"🏠 Modelo Local Activo")
+            st.sidebar.info(f"📍 Servidor: {config.OLLAMA_BASE_URL}")
+        elif provider == "gemini":
             model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
         elif provider == "groq":
             model_info = f"LLM: {config.MODEL_NAME} (Groq)"

@@ -3,6 +3,7 @@ Configuración de la aplicación
 """
 
 import os
+import requests
 from typing import Dict
 from dotenv import load_dotenv
 
@@ -22,19 +23,31 @@ class Config:
         self.SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE")
         self.SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
-        # LLM Providers - Dual support (Groq + Gemini)
+        # LLM Providers - Triple support (Groq + Gemini + Ollama)
         self.GROQ_API_KEY = os.getenv("GROQ_API_KEY")
         self.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+        
+        # Ollama configuration (local model)
+        self.OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://192.168.0.100:11434")
+        self.OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
         
         # Model configuration
         self.MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")  # For Groq
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # For Gemini
         
         # LLM Provider selection (auto-detect or manual)
-        self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto")  # auto, groq, gemini
+        self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto")  # auto, groq, gemini, ollama
 
         # App
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+    
+    def is_ollama_available(self) -> bool:
+        """Verifica si Ollama está disponible y accesible"""
+        try:
+            response = requests.get(f"{self.OLLAMA_BASE_URL}/api/tags", timeout=3)
+            return response.status_code == 200
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+            return False
 
     def get_available_llm_provider(self) -> str:
         """Detecta qué proveedor de LLM está disponible"""
@@ -42,9 +55,13 @@ class Config:
             return "groq"
         elif self.LLM_PROVIDER == "gemini" and self.GOOGLE_API_KEY:
             return "gemini"
+        elif self.LLM_PROVIDER == "ollama" and self.is_ollama_available():
+            return "ollama"
         elif self.LLM_PROVIDER == "auto":
-            # Auto-detectar: priorizar Gemini si está disponible
-            if self.GOOGLE_API_KEY:
+            # Auto-detectar: prioridad Ollama > Gemini > Groq (local primero)
+            if self.is_ollama_available():
+                return "ollama"
+            elif self.GOOGLE_API_KEY:
                 return "gemini"
             elif self.GROQ_API_KEY:
                 return "groq"
@@ -63,7 +80,7 @@ class Config:
         # Verificar que al menos un proveedor LLM esté disponible
         llm_provider = self.get_available_llm_provider()
         if not llm_provider:
-            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY"])
+            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY or OLLAMA_BASE_URL"])
 
         missing_vars = []
         for var in required_vars:

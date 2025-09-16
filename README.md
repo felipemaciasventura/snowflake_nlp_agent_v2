@@ -1,6 +1,6 @@
 # 🤖 Snowflake NLP Agent v2
 
-Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain con soporte dual para Groq/Llama y Google Gemini para conversión automática de texto a SQL con detección híbrida de consultas.
+Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain con **soporte triple** para Groq/Llama, Google Gemini y Ollama (modelo local) para conversión automática de texto a SQL con detección híbrida de consultas.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
@@ -11,7 +11,7 @@ Una aplicación web inteligente construida con Streamlit que permite realizar co
 
 - **💬 Interfaz de Chat Intuitiva**: Conversación natural con tu base de datos
 - **🧠 Procesamiento NLP Híbrido**: Detección inteligente de consultas (BD vs ayuda vs fuera de contexto)
-- **🔄 Soporte Dual de LLM**: Compatible con Groq/Llama y Google Gemini con auto-detección
+- **🔄 Soporte Triple de LLM**: Compatible con Groq/Llama, Google Gemini y Ollama (local) con auto-detección
 - **📊 Visualización Inteligente**: Formateo automático de resultados con tablas interactivas
 - **🔒 Conexión Segura**: Integración robusta con Snowflake usando credenciales encriptadas
 - **🎯 Respuestas Educativas**: Guía inteligente para usuarios con ejemplos y redirección amigable
@@ -24,8 +24,9 @@ Una aplicación web inteligente construida con Streamlit que permite realizar co
 - Python 3.8+
 - Cuenta de Snowflake con credenciales de acceso
 - **API Key de Groq** (opción 1) para modelos Llama
-- **API Key de Google Gemini** (opción 2) para modelos Gemini
-- Al menos uno de los dos proveedores LLM configurado
+- **API Key de Google Gemini** (opción 2) para modelos Gemini  
+- **Servidor Ollama** (opción 3) para modelos locales
+- Al menos uno de los tres proveedores LLM configurado
 
 ### 1. Instalación
 
@@ -69,12 +70,16 @@ SNOWFLAKE_SCHEMA=PUBLIC
 GROQ_API_KEY=tu-groq-api-key
 MODEL_NAME=llama-3.3-70b-versatile
 
-# Google Gemini (opción 2) 
+# Google Gemini (opción 2) - RECOMENDADO
 GOOGLE_API_KEY=tu-google-api-key
 GEMINI_MODEL=gemini-1.5-flash
 
-# Selección de proveedor (auto, groq, gemini)
-LLM_PROVIDER=auto
+# Ollama (opción 3 - modelo local)
+OLLAMA_BASE_URL=http://localhost:11434
+OLLAMA_MODEL=codellama:7b-instruct
+
+# Selección de proveedor (auto, groq, gemini, ollama)
+LLM_PROVIDER=gemini
 
 # Opcional
 DEBUG=False
@@ -161,6 +166,7 @@ snowflake_nlp_agent_v2/
 | **LangChain** | Orquestación LLM | 0.1+ |
 | **Groq** | API LLM (Llama 3.3) ✅ | Latest |
 | **Google Gemini** | API LLM (Gemini 1.5) ✅ | Latest |
+| **Ollama** | Modelos locales (CodeLlama) ✅ | 0.6+ |
 | **Snowflake** | Data Warehouse | Connector 3.0+ |
 | **Pandas** | Manipulación datos | 1.5+ |
 | **SQLAlchemy** | ORM y conexiones | 2.0+ |
@@ -179,11 +185,13 @@ snowflake_nlp_agent_v2/
 | `SNOWFLAKE_SCHEMA` | Schema por defecto | ❌ | `PUBLIC` |
 | `GROQ_API_KEY` | API Key Groq (opción 1) | 🔄 | `gsk_...` |
 | `GOOGLE_API_KEY` | API Key Google Gemini (opción 2) | 🔄 | `AIza...` |
+| `OLLAMA_BASE_URL` | URL servidor Ollama (opción 3) | 🔄 | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Modelo Ollama | ❌ | `codellama:7b-instruct` |
 | `MODEL_NAME` | Modelo Groq | ❌ | `llama-3.3-70b-versatile` |
 | `GEMINI_MODEL` | Modelo Gemini | ❌ | `gemini-1.5-flash` |
-| `LLM_PROVIDER` | Selección proveedor | ❌ | `auto`, `groq`, `gemini` |
+| `LLM_PROVIDER` | Selección proveedor | ❌ | `auto`, `groq`, `gemini`, `ollama` |
 
-**Nota:** 🔄 = Al menos uno de los dos proveedores LLM debe estar configurado
+**Nota:** 🔄 = Al menos uno de los tres proveedores LLM debe estar configurado
 
 ### Comandos de Desarrollo
 
@@ -264,11 +272,17 @@ Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una
 
 14. **Panel de Logs**: Durante todo el proceso, se registran logs detallados que se muestran en el panel lateral, ofreciendo total transparencia sobre lo que hizo el sistema, desde la SQL que generó hasta los resultados que obtuvo.
 
-## 🔄 Actualizaciones Recientes (v2.2)
+## 🔄 Actualizaciones Recientes (v2.3)
 
 ### ✅ Nuevas Características Principales
 
-- **🔄 Soporte Dual de LLM**: Groq/Llama + Google Gemini con auto-detección
+- **🛠️ Soporte Ollama**: Integrado soporte completo para modelos locales (CodeLlama 7B-Instruct)
+- **🔄 Soporte Triple de LLM**: Groq/Llama + Google Gemini + Ollama con auto-detección y prioridad local
+- **📝 Limpieza SQL Avanzada**: Sistema robusto para manejar formato markdown de CodeLlama
+- **🏠 Procesamiento Local**: Opción de privacidad total con modelo local sin costo de APIs
+
+### ✅ Actualizaciones v2.2
+
 - **🧠 Detección Híbrida**: Clasificación inteligente de consultas (BD vs ayuda vs fuera de contexto)
 - **🎯 Respuestas Educativas**: Guía completa con ejemplos para usuarios nuevos
 - **🚀 Redirección Amigable**: Respuestas amigables para consultas fuera de contexto

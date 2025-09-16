@@ -1,5 +1,11 @@
 from langchain_groq import ChatGroq  # Para usar con Groq (código conservado)
 from langchain_google_genai import ChatGoogleGenerativeAI  # Para usar con Gemini
+
+# Importar ChatOllama con compatibilidad para diferentes versiones
+try:
+    from langchain_ollama import ChatOllama  # Versión más reciente
+except ImportError:
+    from langchain_community.chat_models import ChatOllama  # Versión legacy
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.prompts import PromptTemplate
@@ -16,7 +22,7 @@ class SnowflakeNLPAgent:
     Ejecuta la consulta.
 
     Responsabilidades principales:
-    - Configurar el LLM (Groq o Gemini, según configuración)
+    - Configurar el LLM (Groq, Gemini u Ollama, según configuración)
     - Configurar una cadena SQL (SQLDatabaseChain) con un prompt en español
     - Invocar la cadena con la pregunta del usuario
     - Extraer la SQL generada de los intermediate_steps
@@ -32,7 +38,15 @@ class SnowflakeNLPAgent:
         groq_key = groq_api_key or config.GROQ_API_KEY
         google_key = google_api_key or config.GOOGLE_API_KEY
 
-        if provider == "gemini" and google_key:
+        if provider == "ollama":
+            # Usar Ollama (modelo local - prioridad máxima por privacidad)
+            self.llm = ChatOllama(
+                base_url=config.OLLAMA_BASE_URL,
+                model=config.OLLAMA_MODEL,
+                temperature=0.1,
+            )
+            st.sidebar.info(f"LLM en uso: Ollama ({config.OLLAMA_MODEL}) - Local")
+        elif provider == "gemini" and google_key:
             # Usar Gemini (recomendado si tienes plan estudiante)
             self.llm = ChatGoogleGenerativeAI(
                 google_api_key=google_key,
@@ -58,38 +72,40 @@ class SnowflakeNLPAgent:
             )
             st.sidebar.info("LLM en uso: Groq (Llama)")
         else:
-            raise RuntimeError("No hay proveedor LLM disponible. Configura GOOGLE_API_KEY o GROQ_API_KEY.")
+            raise RuntimeError("No hay proveedor LLM disponible. Configura GOOGLE_API_KEY, GROQ_API_KEY o OLLAMA_BASE_URL.")
 
         self.db = SQLDatabase.from_uri(db_connection)
 
         # Crear prompt personalizado para SQLDatabaseChain
         # Prompt en español para generar SQL segura y ejecutable en Snowflake
-        sql_prompt = """Eres un experto en SQL para Snowflake. Debes convertir preguntas
-en español a consultas SQL válidas.
+        sql_prompt = """Eres un experto en SQL para Snowflake. Genera SOLAMENTE la consulta SQL pura.
 
 INFORMACIÓN DE LA BASE DE DATOS:
 {table_info}
 
 Pregunta: {input}
 
-REGLAS ESTRICTAS:
-1. Responde SOLAMENTE con la consulta SQL sin formato markdown
-2. NO uses ```sql ni ``` en tu respuesta
-3. NO agregues explicaciones ni texto adicional
-4. Usa nombres exactos de tablas y columnas mostradas arriba
-5. Agrega LIMIT 10 para evitar resultados masivos EXCEPTO para consultas COUNT
-6. Para preguntas sobre la base de datos actual: SELECT CURRENT_DATABASE()
-7. Para listar tablas disponibles: SHOW TABLES
-8. IMPORTANTE: Para preguntas sobre CANTIDAD/CUÁNTAS use COUNT:
-   - "¿cuántas tablas hay?" → SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES
-WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_TYPE = 'BASE TABLE'
-   - "¿cuántos registros hay en [tabla]?" → SELECT COUNT(*) FROM [tabla]
-   - "¿cuántos clientes hay?" → SELECT COUNT(*) FROM customer
-   - "¿cuántas ventas hay?" → SELECT COUNT(*) FROM orders
-9. Para COUNT queries NO añadas LIMIT
-10. Usa INFORMATION_SCHEMA.TABLES para contar tablas del schema actual
+❗ REGLAS OBLIGATORIAS:
+1. NUNCA uses ``` o backticks en tu respuesta
+2. NUNCA uses formato markdown o bloques de código
+3. RESPONDE SOLO CON SQL PURA - NADA MÁS
+4. NO agregues explicaciones, comentarios o texto adicional
+5. Para consultas de conteo (cuántas/cuántos): usa COUNT(*) sin LIMIT
+6. Para otras consultas: agrega LIMIT 10
 
-SQL:"""
+📝 EJEMPLOS DE RESPUESTA CORRECTA:
+Pregunta: ¿cuántas tablas hay?
+Respuesta: SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_TYPE = 'BASE TABLE'
+
+Pregunta: lista productos
+Respuesta: SELECT * FROM products LIMIT 10
+
+⛔ NUNCA HAGAS ESTO:
+- ``` SELECT ... ```
+- ```sql SELECT ... ```
+- Explicaciones antes o después del SQL
+
+✅ SQL PURA SOLAMENTE:"""
 
         self.sql_chain = SQLDatabaseChain.from_llm(
             self.llm,
@@ -100,6 +116,60 @@ SQL:"""
                 input_variables=["input", "table_info"], template=sql_prompt
             ),
         )
+    
+    def clean_sql_response(self, sql_text: str) -> str:
+        """Limpia respuesta SQL removiendo markdown y formato extra - Optimizado para CodeLlama"""
+        if not isinstance(sql_text, str):
+            return ""
+        
+        import re
+        
+        # Remover espacios al inicio y final
+        cleaned = sql_text.strip()
+        
+        # PASO 1: Remover bloques de código markdown multilínea
+        # Patrón para ```\nSELECT...\n```
+        multiline_pattern = r'^```\s*\n(.*?)\n```$'
+        match = re.search(multiline_pattern, cleaned, re.DOTALL | re.IGNORECASE)
+        if match:
+            cleaned = match.group(1).strip()
+        else:
+            # PASO 2: Remover bloques de código inline ```sql...```
+            inline_pattern = r'^```(?:sql)?\s*\n?(.*?)\n?```$'
+            match = re.search(inline_pattern, cleaned, re.DOTALL | re.IGNORECASE)
+            if match:
+                cleaned = match.group(1).strip()
+        
+        # PASO 3: Remover backticks sueltos al inicio o final (múltiples iteraciones)
+        while cleaned.startswith('`') or cleaned.endswith('`'):
+            cleaned = cleaned.strip('`').strip()
+        
+        # PASO 4: Si aún hay backticks al inicio de líneas, removerlos
+        lines = cleaned.split('\n')
+        cleaned_lines = []
+        for line in lines:
+            line = line.strip()
+            # Remover backticks al inicio de línea
+            while line.startswith('`'):
+                line = line[1:].strip()
+            if line:  # Solo agregar líneas no vacías
+                cleaned_lines.append(line)
+        
+        # PASO 5: Filtrar solo líneas SQL válidas
+        sql_lines = []
+        for line in cleaned_lines:
+            # Mantener líneas que parecen SQL
+            if (line.upper().startswith(('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'FROM', 'WHERE', 'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'SHOW', 'DESCRIBE', 'EXPLAIN')) or
+                any(keyword in line.upper() for keyword in ['FROM', 'WHERE', 'AND', 'OR', 'ORDER BY', 'GROUP BY', 'HAVING', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN'])):
+                sql_lines.append(line)
+        
+        # PASO 6: Unir las líneas SQL
+        result = ' '.join(sql_lines).strip()  # Usar espacio en lugar de \n para una línea
+        
+        # PASO 7: Limpiar espacios múltiples
+        result = re.sub(r'\s+', ' ', result)
+        
+        return result
 
     def process_query(self, user_question: str) -> Dict[str, Any]:
         """Procesa la consulta de usuario y devuelve datos listos para la UI.
@@ -146,11 +216,9 @@ SQL:"""
             # reales
             actual_result = None
             if isinstance(sql_query, str):
-                # Normaliza la SQL (remueve posibles backticks/markdown)
-                cleaned_sql = sql_query.strip().strip("`").strip()
-                if cleaned_sql.startswith("```"):
-                    cleaned_sql = cleaned_sql.strip("`")
-                if cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
+                # Normaliza la SQL (remueve posibles backticks/markdown) - Mejorado para CodeLlama
+                cleaned_sql = self.clean_sql_response(sql_query)
+                if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                     try:
                         self.log_step("🚀 Ejecutando SQL detectada", cleaned_sql)
                         actual_result = self.db.run(cleaned_sql)
@@ -192,20 +260,23 @@ SQL:"""
             # Último recurso: si el resultado final es una SQL, ejecutarla
             if actual_result is None:
                 final_answer = result.get("result")
-                if isinstance(
-                    final_answer, str
-                ) and final_answer.strip().upper().startswith(
-                    ("SELECT", "SHOW", "DESCRIBE")
-                ):
-                    try:
-                        self.log_step(
-                            "🚀 Ejecutando respuesta LLM como SQL", final_answer
-                        )
-                        actual_result = self.db.run(final_answer)
-                    except Exception as e:
-                        self.log_step(
-                            "⚠️ Error ejecutando respuesta LLM", f"Error: {str(e)}"
-                        )
+                if isinstance(final_answer, str):
+                    # Limpiar la respuesta final también
+                    cleaned_final = self.clean_sql_response(final_answer)
+                    if cleaned_final and cleaned_final.upper().startswith(
+                        ("SELECT", "SHOW", "DESCRIBE")
+                    ):
+                        try:
+                            self.log_step(
+                                "🚀 Ejecutando respuesta LLM como SQL", cleaned_final
+                            )
+                            actual_result = self.db.run(cleaned_final)
+                        except Exception as e:
+                            self.log_step(
+                                "⚠️ Error ejecutando respuesta LLM", f"Error: {str(e)}"
+                            )
+                            actual_result = final_answer
+                    else:
                         actual_result = final_answer
                 else:
                     actual_result = final_answer
