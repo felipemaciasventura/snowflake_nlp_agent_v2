@@ -93,7 +93,19 @@ def is_database_query(user_input):
         "dólares", "valores", "valor", "transacciones", "transaction", "locations",
         "ubicación", "ubicaciones", "caros", "caras", "expensive", "más", "menos",
         "join", "inner", "left", "right", "where", "order by", "group by", "partition",
-        "over", "window", "función", "funciones", "aggregate", "aggregation"
+        "over", "window", "función", "funciones", "aggregate", "aggregation",
+        # Vocabulario específico de bienes raíces (basado en esquema SQL)
+        "agente", "agentes", "propietario", "propietarios", "dueño", "dueños",
+        "venta", "ventas", "compra", "compras", "comprador", "compradores", "vendedor", "vendedores",
+        "inmueble", "inmuebles", "casa", "casas", "apartamento", "apartamentos", "lote", "lotes",
+        "hipoteca", "hipotecas", "crédito", "financiamiento", "prestamo", "préstamo",
+        "dormitorios", "habitaciones", "baños", "metros", "m2", "pies", "sqft",
+        "garaje", "estacionamiento", "piscina", "jardín", "patio", "terraza",
+        "condado", "estado", "código postal", "zipcode", "msa", "zona", "vecindario",
+        "avaluo", "avalúo", "tasación", "impuesto", "impuestos", "comisión", "comisiones",
+        "listado", "listados", "oferta", "ofertas", "cierre", "cierres", "escritura",
+        "inspección", "evaluación", "mercado", "tendencia", "tendencias", "crecimiento",
+        "rentabilidad", "roi", "inversión", "inversiones", "portfolio", "cartera"
     ]
     
     # Palabras clave fuera de contexto (ser más específico para evitar conflictos)
@@ -148,22 +160,25 @@ def get_help_response():
     """Devuelve respuesta educativa sobre las capacidades del sistema"""
     return {
         "type": "help",
-        "message": """¡Hola! 👋 Soy tu asistente NLP para consultas en Snowflake.
+        "message": """¡Hola! 👋 Soy tu asistente NLP para consultas de bienes raíces en Snowflake.
 
 🔍 **Te puedo ayudar con:**
-• 📈 **Consultas sobre datos:** "?Cuántos clientes tengo?"
-• 📊 **Análisis por región:** "?Cuál es el promedio de ventas por región?"
-• 📋 **Listados:** "Muéstrame los productos más vendidos"
-• 🖼️ **Información de tablas:** "?Qué tablas hay disponibles?"
-• 🔢 **Conteos:** "?Cuántas órdenes hay en total?"
-• 📅 **Consultas temporales:** "Muestra las ventas de los últimos 30 días"
+• 🏠 **Propiedades:** "?¿Cuántas propiedades hay por ciudad?"
+• 💰 **Precios:** "?¿Cuál es el precio promedio por metro cuadrado?"
+• 👥 **Agentes:** "Muéstrame los agentes con más ventas"
+• 📈 **Transacciones:** "Lista las últimas 10 transacciones"
+• 📊 **Análisis:** "?¿En qué ciudad se venden las propiedades más caras?"
+• 🏛️ **Ubicaciones:** "Muéstrame estadísticas por condado"
 
 🎨 **Ejemplos que puedes probar:**
-• "Lista todas las regiones disponibles"
-• "?Cuál es el cliente que más ha gastado?"
-• "Muéstrame el promedio de ingresos por región"
+• "Para cada ciudad, obtener el precio promedio de venta"
+• "?¿Qué agente ha vendido más propiedades este año?"
+• "Lista propiedades con más de 3 dormitorios y piscina"
+• "?¿Cuál es la comisión promedio de los agentes?"
+• "Muéstrame las propiedades más caras por ciudad"
+• "?¿Cuántas transacciones se hicieron el mes pasado?"
 
-¡Hazme cualquier pregunta sobre tus datos! 🚀"""
+¡Hazme cualquier pregunta sobre bienes raíces! 🏡🚀"""
     }
 
 
@@ -325,7 +340,28 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                 # DataFrame creado con formato personalizado
                 return df_result
 
-        # Caso 4: Para consultas COUNT (cantidad/cuántas)
+        # Caso 4: Para consultas inmobiliarias específicas
+        if any(term in user_question.lower() for term in ["precio", "precios", "venta", "ventas", "propiedades", "agente"]):
+            if len(data) > 0 and len(data[0]) >= 2:
+                # Detectar si hay precios o valores monetarios
+                if any(col_name in str(data[0]).lower() for col_name in ["price", "precio", "sale", "venta", "commission", "comision"]):
+                    formatted_rows = []
+                    for row in data:
+                        formatted_row = {}
+                        for i, value in enumerate(row):
+                            col_name = f"Columna_{i+1}"
+                            if i == 0 and any(term in user_question.lower() for term in ["ciudad", "city"]):
+                                col_name = "Ciudad"
+                            elif "price" in str(value).lower() or (isinstance(value, (int, float)) and value > 10000):
+                                col_name = "Precio" if "precio" in user_question.lower() else "Valor"
+                                value = f"${float(value):,.2f}" if isinstance(value, (int, float, Decimal)) else str(value)
+                            elif "id" in str(value).lower() or (i == 0 and isinstance(value, int) and value < 10000):
+                                col_name = "ID"
+                            formatted_row[col_name] = value
+                        formatted_rows.append(formatted_row)
+                    return pd.DataFrame(formatted_rows)
+        
+        # Caso 5: Para consultas COUNT (cantidad/cuántas)
         if (
             "COUNT(*)" in sql_query.upper()
             or "count(*)" in user_question.lower()
@@ -385,11 +421,11 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                         ]
                     )
 
-        # Caso 5: Para CURRENT_DATABASE
+        # Caso 6: Para CURRENT_DATABASE
         if "CURRENT_DATABASE" in sql_query.upper():
             return pd.DataFrame(data, columns=["Base de Datos"])
 
-        # Caso 6: Para SHOW TABLES
+        # Caso 7: Para SHOW TABLES
         if "SHOW TABLES" in sql_query.upper():
             if len(data) > 0 and len(data[0]) >= 2:
                 table_data = []
@@ -405,7 +441,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     )
                 return pd.DataFrame(table_data)
 
-        # Caso 7: Para consultas por región (promedio, suma, etc.)
+        # Caso 8: Para consultas por región (promedio, suma, etc.)
         if (
             "región" in user_question.lower()
             or "region" in user_question.lower()
@@ -439,7 +475,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             
             return pd.DataFrame(formatted_rows)
 
-        # Caso 8: Por defecto - crear DataFrame de manera más robusta
+        # Caso 9: Por defecto - crear DataFrame de manera más robusta
         try:
             # Intentar crear DataFrame directamente
             df = pd.DataFrame(data)

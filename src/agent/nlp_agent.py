@@ -77,11 +77,24 @@ class SnowflakeNLPAgent:
         self.db = SQLDatabase.from_uri(db_connection)
 
         # Crear prompt personalizado para SQLDatabaseChain
-        # Prompt en español para generar SQL segura y ejecutable en Snowflake
-        sql_prompt = """Eres un experto en SQL para Snowflake. Genera SOLAMENTE la consulta SQL pura.
+        # Prompt en español para generar SQL segura y ejecutable en Snowflake - Optimizado para Bienes Raíces
+        sql_prompt = """Eres un experto en SQL para Snowflake especializado en bienes raíces. Genera SOLAMENTE la consulta SQL pura.
 
 INFORMACIÓN DE LA BASE DE DATOS:
 {table_info}
+
+🏡 CONTEXTO DE BIENES RAÍCES:
+Esta base de datos contiene:
+- PROPERTIES: Propiedades (bedrooms, bathrooms, sqft, price, property_type)
+- LOCATIONS: Ubicaciones (city, state, population, median_income)
+- AGENTS: Agentes (transaction_count, avg_sale_price, commission_rate)
+- TRANSACTIONS: Transacciones (sale_date, sale_price, days_on_market)
+- OWNERS: Propietarios (num_properties_owned, investor_flag)
+
+🔗 RELACIONES CLAVE:
+- properties.location_id = locations.location_id
+- transactions.property_id = properties.property_id
+- transactions.agent_id = agents.agent_id
 
 Pregunta: {input}
 
@@ -90,15 +103,17 @@ Pregunta: {input}
 2. NUNCA uses formato markdown o bloques de código
 3. RESPONDE SOLO CON SQL PURA - NADA MÁS
 4. NO agregues explicaciones, comentarios o texto adicional
-5. Para consultas de conteo (cuántas/cuántos): usa COUNT(*) sin LIMIT
+5. Para consultas de conteo: usa COUNT(*) sin LIMIT
 6. Para otras consultas: agrega LIMIT 10
+7. Para rankings: usa RANK() OVER (ORDER BY ...)
+8. Para precios: usa nombres de columnas como sale_price, list_price, price
 
-📝 EJEMPLOS DE RESPUESTA CORRECTA:
-Pregunta: ¿cuántas tablas hay?
-Respuesta: SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() AND TABLE_TYPE = 'BASE TABLE'
+📝 EJEMPLOS ESPECÍFICOS DE BIENES RAÍCES:
+Pregunta: propiedades más caras por ciudad
+Respuesta: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
 
-Pregunta: lista productos
-Respuesta: SELECT * FROM products LIMIT 10
+Pregunta: agentes con más ventas
+Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10
 
 ⛔ NUNCA HAGAS ESTO:
 - ``` SELECT ... ```
