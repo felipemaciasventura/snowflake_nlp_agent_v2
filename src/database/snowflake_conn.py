@@ -1,5 +1,5 @@
 """
-Conexión y manejo de Snowflake
+Snowflake connection and management
 """
 
 import snowflake.connector
@@ -17,16 +17,16 @@ logger = logging.getLogger(__name__)
 
 
 class SnowflakeConnection:
-    """Clase para manejar conexiones con Snowflake.
+    """Class to handle Snowflake connections.
 
-    Ofrece:
-    - connect(): valida configuración, abre conexión nativa y crea engine SQLAlchemy
-    - execute_query(): ejecuta SQL y devuelve filas + nombres de columnas
-    - execute_query_to_df(): ejecuta SQL y devuelve un DataFrame (pandas)
-    - get_connection_string(): expone cadena de conexión para integraciones (LangChain)
-    - get_connection_info(): devuelve metadatos de sesión actuales
+    Provides:
+    - connect(): validates configuration, opens native connection and creates SQLAlchemy engine
+    - execute_query(): executes SQL and returns rows + column names
+    - execute_query_to_df(): executes SQL and returns a DataFrame (pandas)
+    - get_connection_string(): exposes connection string for integrations (LangChain)
+    - get_connection_info(): returns current session metadata
 
-    Nota: Se usa NullPool para evitar conflictos de pooling con Snowflake.
+    Note: Uses NullPool to avoid pooling conflicts with Snowflake.
     """
 
     def __init__(self):
@@ -35,20 +35,20 @@ class SnowflakeConnection:
         self.is_connected = False
 
     def connect(self) -> bool:
-        """Establece conexión con Snowflake"""
+        """Establish connection to Snowflake"""
         try:
-            log_manager.add_log("🔌 Conectando", "Iniciando conexión con Snowflake...")
+            log_manager.add_log("🔌 Connecting", "Starting connection to Snowflake...")
 
-            # Validar configuración
+            # Validate configuration
             validation = config.validate()
             if not validation["valid"]:
                 missing_vars = ", ".join(validation["missing_vars"])
-                error_msg = f"Variables de entorno faltantes: {missing_vars}"
-                log_manager.add_log("❌ Configuración", error_msg, "ERROR")
+                error_msg = f"Missing environment variables: {missing_vars}"
+                log_manager.add_log("❌ Configuration", error_msg, "ERROR")
                 st.error(error_msg)
                 return False
 
-            # Configuración de conexión
+            # Connection configuration
             connection_params = {
                 "account": config.SNOWFLAKE_ACCOUNT,
                 "user": config.SNOWFLAKE_USER,
@@ -61,22 +61,22 @@ class SnowflakeConnection:
             }
 
             log_manager.add_log(
-                "⚙️ Configuración",
-                f"Conectando a {config.SNOWFLAKE_ACCOUNT}/{config.SNOWFLAKE_DATABASE}",
+                "⚙️ Configuration",
+                f"Connecting to {config.SNOWFLAKE_ACCOUNT}/{config.SNOWFLAKE_DATABASE}",
             )
 
-            # Establecer conexión directa
+            # Establish direct connection
             self.connection = snowflake.connector.connect(**connection_params)
 
-            # Crear engine para SQLAlchemy
+            # Create engine for SQLAlchemy
             connection_string = self._build_connection_string()
             self.engine = create_engine(
                 connection_string,
-                poolclass=NullPool,  # Evita problemas con pools de conexiones
+                poolclass=NullPool,  # Avoid connection pool issues
                 echo=config.DEBUG,
             )
 
-            # Verificar conexión
+            # Verify connection
             cursor = self.connection.cursor()
             cursor.execute(
                 "SELECT CURRENT_USER(), CURRENT_WAREHOUSE(), "
@@ -87,24 +87,24 @@ class SnowflakeConnection:
 
             self.is_connected = True
             log_manager.add_log(
-                "✅ Conectado",
-                f"Usuario: {result[0]}, Warehouse: {result[1]}, "
+                "✅ Connected",
+                f"User: {result[0]}, Warehouse: {result[1]}, "
                 f"DB: {result[2]}, Schema: {result[3]}",
             )
 
             return True
 
         except Exception as e:
-            error_msg = error_handler.handle_exception(e, "conexión a Snowflake")
+            error_msg = error_handler.handle_exception(e, "Snowflake connection")
             st.error(error_msg)
             return False
 
     def disconnect(self):
-        """Cierra la conexión con Snowflake"""
+        """Close connection to Snowflake"""
         try:
             if self.connection:
                 self.connection.close()
-                log_manager.add_log("🔌 Desconectado", "Conexión cerrada correctamente")
+                log_manager.add_log("🔌 Disconnected", "Connection closed successfully")
 
             if self.engine:
                 self.engine.dispose()
@@ -114,12 +114,12 @@ class SnowflakeConnection:
             self.engine = None
 
         except Exception as e:
-            error_handler.handle_exception(e, "desconexión de Snowflake")
+            error_handler.handle_exception(e, "Snowflake disconnection")
 
     def execute_query(self, query: str) -> Optional[Any]:
-        """Ejecuta una consulta SQL"""
+        """Execute a SQL query"""
         if not self.is_connected or not self.connection:
-            error_msg = "No hay conexión activa con Snowflake"
+            error_msg = "No active connection to Snowflake"
             log_manager.add_log("❌ Error", error_msg, "ERROR")
             return None
 
@@ -132,39 +132,39 @@ class SnowflakeConnection:
             )
             cursor.close()
 
-            log_manager.add_log("📊 Query", f"Ejecutada consulta: {len(results)} filas")
+            log_manager.add_log("📊 Query", f"Executed query: {len(results)} rows")
 
             return {"data": results, "columns": columns, "row_count": len(results)}
 
         except Exception as e:
-            error_msg = error_handler.handle_exception(e, "ejecución de consulta")
+            error_msg = error_handler.handle_exception(e, "query execution")
             return None
 
     def execute_query_to_df(self, query: str):
-        """Ejecuta consulta y retorna DataFrame"""
+        """Execute query and return DataFrame"""
         try:
             import pandas as pd
 
             if not self.engine:
                 log_manager.add_log(
-                    "❌ Error", "Engine SQLAlchemy no disponible", "ERROR"
+                    "❌ Error", "SQLAlchemy engine not available", "ERROR"
                 )
                 return None
 
             df = pd.read_sql(query, self.engine)
-            log_manager.add_log("📊 DataFrame", f"Creado DataFrame: {df.shape}")
+            log_manager.add_log("📊 DataFrame", f"Created DataFrame: {df.shape}")
             return df
 
         except Exception as e:
-            error_handler.handle_exception(e, "conversión a DataFrame")
+            error_handler.handle_exception(e, "DataFrame conversion")
             return None
 
     def test_connection(self) -> bool:
-        """Prueba la conexión actual"""
+        """Test current connection"""
         return error_handler.validate_connection(self.connection)
 
     def get_connection_info(self) -> Dict[str, str]:
-        """Obtiene información de la conexión actual"""
+        """Get current connection information"""
         if not self.is_connected:
             return {}
 
@@ -192,15 +192,15 @@ class SnowflakeConnection:
             }
 
         except Exception as e:
-            error_handler.handle_exception(e, "obtención de info de conexión")
+            error_handler.handle_exception(e, "connection info retrieval")
             return {}
 
     def get_connection_string(self) -> str:
-        """Obtiene string de conexión para SQLAlchemy"""
+        """Get connection string for SQLAlchemy"""
         return self._build_connection_string()
 
     def _build_connection_string(self) -> str:
-        """Construye string de conexión para SQLAlchemy"""
+        """Build connection string for SQLAlchemy"""
         return (
             f"snowflake://{config.SNOWFLAKE_USER}:{config.SNOWFLAKE_PASSWORD}"
             f"@{config.SNOWFLAKE_ACCOUNT}/{config.SNOWFLAKE_DATABASE}"
@@ -217,5 +217,5 @@ class SnowflakeConnection:
         self.disconnect()
 
 
-# Instancia global de conexión
+# Global connection instance
 snowflake_conn = SnowflakeConnection()

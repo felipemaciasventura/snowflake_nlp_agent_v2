@@ -7,19 +7,19 @@ import ast
 from src.agent.nlp_agent import SnowflakeNLPAgent
 from src.database.snowflake_conn import SnowflakeConnection
 
-# Constantes de regex
+# Regex constants
 DECIMAL_REGEX = r"Decimal\('([^']+)'\)"
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 
 
-# Configuración de página
-st.set_page_config(page_title="Agente NLP Snowflake", page_icon="🤖", layout="wide")
+# Page configuration
+st.set_page_config(page_title="Snowflake NLP Agent", page_icon="🤖", layout="wide")
 
 
 def initialize_session_state():
-    """Inicializa el estado de la sesión"""
+    """Initialize session state"""
     if "messages" not in st.session_state:
         st.session_state.messages = []
     if "processing_logs" not in st.session_state:
@@ -31,52 +31,52 @@ def initialize_session_state():
 
 
 def setup_sidebar():
-    """Configura la barra lateral"""
-    st.sidebar.header("🔧 Configuración")
+    """Set up sidebar"""
+    st.sidebar.header("🔧 Configuration")
 
-    # Estado de conexión
+    # Connection status
     if st.session_state.db_connection:
-        st.sidebar.success("✅ Conectado a Snowflake")
+        st.sidebar.success("✅ Connected to Snowflake")
     else:
-        st.sidebar.error("❌ No conectado")
+        st.sidebar.error("❌ Not connected")
 
-    # Información del sistema
-    st.sidebar.header("📊 Información del Sistema")
+    # System information
+    st.sidebar.header("📊 System Information")
     if st.session_state.agent:
-        # Detectar qué modelo LLM se está usando
+        # Detect which LLM model is being used
         from src.utils.config import config
         provider = config.get_available_llm_provider()
         
         if provider == "ollama":
             model_info = f"LLM: {config.OLLAMA_MODEL} (Ollama Local)"
-            # Información adicional para Ollama
-            st.sidebar.success(f"🏠 Modelo Local Activo")
-            st.sidebar.info(f"📍 Servidor: {config.OLLAMA_BASE_URL}")
+            # Additional information for Ollama
+            st.sidebar.success(f"🏠 Local Model Active")
+            st.sidebar.info(f"📍 Server: {config.OLLAMA_BASE_URL}")
         elif provider == "gemini":
             model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
         elif provider == "groq":
             model_info = f"LLM: {config.MODEL_NAME} (Groq)"
         else:
-            model_info = "LLM: No detectado"
+            model_info = "LLM: Not detected"
             
         st.sidebar.info(model_info)
-        st.sidebar.info(f"Base de datos: {os.getenv('SNOWFLAKE_DATABASE')}")
+        st.sidebar.info(f"Database: {os.getenv('SNOWFLAKE_DATABASE')}")
         st.sidebar.info(f"Schema: {os.getenv('SNOWFLAKE_SCHEMA')}")
 
-    # Botón para limpiar historial
-    if st.sidebar.button("🗑️ Limpiar Historial"):
+    # Button to clear history
+    if st.sidebar.button("🗑️ Clear History"):
         st.session_state.messages = []
         st.session_state.processing_logs = []
         st.rerun()
 
 
 # ========================
-# Detección y respuestas híbridas
+# Hybrid detection and responses
 # ========================
 
 
 def is_database_query(user_input):
-    """Detecta si la consulta es sobre bases de datos o fuera de contexto"""
+    """Detects if the query is about databases or out of context"""
     user_input_lower = user_input.lower()
     
     # Palabras clave que indican consulta de BD
@@ -157,78 +157,78 @@ def is_database_query(user_input):
 
 
 def get_help_response():
-    """Devuelve respuesta educativa sobre las capacidades del sistema"""
+    """Returns educational response about system capabilities"""
     return {
         "type": "help",
-        "message": """¡Hola! 👋 Soy tu asistente NLP para consultas de bienes raíces en Snowflake.
+        "message": """Hello! 👋 I'm your NLP assistant for real estate queries in Snowflake.
 
-🔍 **Te puedo ayudar con:**
-• 🏠 **Propiedades:** "?¿Cuántas propiedades hay por ciudad?"
-• 💰 **Precios:** "?¿Cuál es el precio promedio por metro cuadrado?"
-• 👥 **Agentes:** "Muéstrame los agentes con más ventas"
-• 📈 **Transacciones:** "Lista las últimas 10 transacciones"
-• 📊 **Análisis:** "?¿En qué ciudad se venden las propiedades más caras?"
-• 🏛️ **Ubicaciones:** "Muéstrame estadísticas por condado"
+🔍 **I can help you with:**
+• 🏠 **Properties:** "How many properties are there per city?"
+• 💰 **Prices:** "What's the average price per square foot?"
+• 👥 **Agents:** "Show me agents with most sales"
+• 📈 **Transactions:** "List the last 10 transactions"
+• 📊 **Analysis:** "Which city has the most expensive properties?"
+• 🏦 **Locations:** "Show me statistics by county"
 
-🎨 **Ejemplos que puedes probar:**
-• "Para cada ciudad, obtener el precio promedio de venta"
-• "?¿Qué agente ha vendido más propiedades este año?"
-• "Lista propiedades con más de 3 dormitorios y piscina"
-• "?¿Cuál es la comisión promedio de los agentes?"
-• "Muéstrame las propiedades más caras por ciudad"
-• "?¿Cuántas transacciones se hicieron el mes pasado?"
+🎨 **Examples you can try:**
+• "For each city, get the average sale price"
+• "Which agent has sold the most properties this year?"
+• "List properties with more than 3 bedrooms and a pool"
+• "What's the average commission of agents?"
+• "Show me the most expensive properties by city"
+• "How many transactions were made last month?"
 
-¡Hazme cualquier pregunta sobre bienes raíces! 🏡🚀"""
+Ask me any question about real estate! 🏡🚀"""
     }
 
 
 def get_redirect_response():
-    """Devuelve respuesta de redirección para consultas fuera de contexto"""
+    """Returns redirect response for out-of-context queries"""
     return {
         "type": "redirect",
-        "message": """🤖 Soy un asistente especializado en consultas de bases de datos Snowflake.
+        "message": """🤖 I'm an assistant specialized in Snowflake database queries.
 
-No puedo ayudarte con esa consulta, pero ¡sí puedo ayudarte a explorar tus datos! 📋
+I can't help you with that query, but I can help you explore your data! 📋
 
-🎨 **Prueba preguntándome algo como:**
-• "?Cuántos registros hay en la tabla de clientes?"
-• "Muéstrame las regiones con mayor facturación"
-• "?Qué tablas están disponibles?"
+🎨 **Try asking me something like:**
+• "How many records are in the customers table?"
+• "Show me the regions with highest revenue"
+• "What tables are available?"
 
-¿Hay alguna información de tu base de datos que te interese conocer? 😊"""
+Is there any information from your database you'd like to know? 😊"""
     }
 
 
 # ========================
-# Utilidades de formateo
+# Formatting utilities
 # ========================
 
 
 def parse_sql_result_string(result_string):
-    """Parsea un string con resultados SQL y lo convierte en datos reales"""
+    """Parse a string with SQL results and convert it to real data"""
 
-    # Si no es string o no tiene el formato esperado, devolver tal como está
+    # If it's not a string or doesn't have expected format, return as is
     if not isinstance(result_string, str) or not result_string.strip():
         return result_string
 
-    # Limpiar el string de entrada
+    # Clean input string
     cleaned_string = result_string.strip()
 
     try:
-        # Caso 1: Lista de tuplas [(...), (...)]
+        # Case 1: List of tuples [(...), (...)]
         if cleaned_string.startswith("[") and cleaned_string.endswith("]"):
-            # Reemplazar Decimal('...') con float
+            # Replace Decimal('...') with float
             cleaned_string = re.sub(DECIMAL_REGEX, r"\1", cleaned_string)
-            # Reemplazar None con 'None' para evaluación segura
+            # Replace None with 'None' for safe evaluation
             cleaned_string = re.sub(r"\bNone\b", "'None'", cleaned_string)
 
-            # Intentar evaluar como literal de Python
+            # Try to evaluate as Python literal
             parsed_data = ast.literal_eval(cleaned_string)
             return parsed_data
 
-        # Caso 2: Tupla simple (...)
+        # Case 2: Simple tuple (...)
         elif cleaned_string.startswith("(") and cleaned_string.endswith(")"):
-            # Convertir tupla simple a lista de tuplas
+            # Convert simple tuple to list of tuples
             cleaned_string = f"[{cleaned_string}]"
             cleaned_string = re.sub(DECIMAL_REGEX, r"\1", cleaned_string)
             cleaned_string = re.sub(r"\bNone\b", "'None'", cleaned_string)
@@ -236,9 +236,9 @@ def parse_sql_result_string(result_string):
             parsed_data = ast.literal_eval(cleaned_string)
             return parsed_data
 
-        # Caso 3: String que parece ser datos pero no está bien formateado
+        # Case 3: String that seems to be data but not well formatted
         elif "Decimal(" in cleaned_string or "None" in cleaned_string:
-            # Intentar arreglar el formato
+            # Try to fix the format
             if not cleaned_string.startswith("["):
                 cleaned_string = f"[{cleaned_string}]"
 
@@ -249,31 +249,31 @@ def parse_sql_result_string(result_string):
             return parsed_data
 
     except (ValueError, SyntaxError, TypeError):
-        # Los errores de parsing son normales para datos complejos como datetime
-        # El fallback manejará el caso
+        # Parsing errors are normal for complex data like datetime
+        # The fallback will handle the case
 
-        # Fallback: intentar extraer datos usando regex
+        # Fallback: try to extract data using regex
         try:
-            # Buscar patrones de tuplas con números
+            # Look for tuple patterns with numbers
             tuple_pattern = r"\(([^)]+)\)"
             matches = re.findall(tuple_pattern, cleaned_string)
 
             if matches:
                 parsed_tuples = []
                 for match in matches:
-                    # Separar elementos por coma
+                    # Separate elements by comma
                     elements = [elem.strip().strip("'\"") for elem in match.split(",")]
-                    # Convertir números cuando sea posible
+                    # Convert numbers when possible
                     converted_elements = []
                     for elem in elements:
                         try:
-                            # Intentar convertir a número
+                            # Try to convert to number
                             if "." in elem:
                                 converted_elements.append(float(elem))
                             else:
                                 converted_elements.append(int(elem))
                         except ValueError:
-                            # Si no es número, mantener como string
+                            # If not a number, keep as string
                             converted_elements.append(elem)
 
                     parsed_tuples.append(tuple(converted_elements))
@@ -281,36 +281,36 @@ def parse_sql_result_string(result_string):
                 return parsed_tuples
 
         except Exception:
-            # Fallback también falló, se devolverá el string original
+            # Fallback also failed, will return original string
             pass
 
-    # Si todo falla, devolver el string original
+    # If everything fails, return original string
     return result_string
 
 
 def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
-    """Convierte los resultados SQL en un DataFrame bien formateado"""
+    """Convert SQL results into a well-formatted DataFrame"""
     from decimal import Decimal
 
-    # Formateo inteligente de resultados SQL
+    # Smart formatting of SQL results
 
     try:
-        # Caso 1: Si es string, intentar parsearlo primero
+        # Case 1: If it's a string, try to parse it first
         if isinstance(data, str):
-            # Intentar parsear si parece ser datos de SQL
+            # Try to parse if it looks like SQL data
             if data.startswith("[") or data.startswith("("):
                 parsed_data = parse_sql_result_string(data)
-                if parsed_data != data:  # Si se pudo parsear
+                if parsed_data != data:  # If it could be parsed
                     data = parsed_data
-                    # String parseado exitosamente
+                    # String parsed successfully
                 else:
-                    return pd.DataFrame({"Resultado": [data]})
+                    return pd.DataFrame({"Result": [data]})
             else:
-                return pd.DataFrame({"Resultado": [data]})
+                return pd.DataFrame({"Result": [data]})
 
-        # Caso 2: Si no hay datos o no es lista
+        # Case 2: If there's no data or it's not a list
         if not isinstance(data, list) or not data:
-            return pd.DataFrame({"Resultado": ["Sin datos"]})
+            return pd.DataFrame({"Result": ["No data"]})
 
         # Caso 3: Para la consulta específica de pedidos con mayor valor
         if (
@@ -406,8 +406,8 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     return pd.DataFrame(
                         [
                             {
-                                "Descripción": "Total de ventas",
-                                "Cantidad": f"{count_value:,}",
+                                "Description": "Total sales",
+                                "Count": f"{count_value:,}",
                             }
                         ]
                     )
@@ -415,116 +415,116 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     return pd.DataFrame(
                         [
                             {
-                                "Descripción": "Total de registros",
-                                "Cantidad": f"{count_value:,}",
+                                "Description": "Total records",
+                                "Count": f"{count_value:,}",
                             }
                         ]
                     )
 
-        # Caso 6: Para CURRENT_DATABASE
+        # Case 6: For CURRENT_DATABASE
         if "CURRENT_DATABASE" in sql_query.upper():
-            return pd.DataFrame(data, columns=["Base de Datos"])
+            return pd.DataFrame(data, columns=["Database"])
 
-        # Caso 7: Para SHOW TABLES
+        # Case 7: For SHOW TABLES
         if "SHOW TABLES" in sql_query.upper():
             if len(data) > 0 and len(data[0]) >= 2:
                 table_data = []
                 for row in data:
                     table_data.append(
                         {
-                            "Tabla": row[1],
-                            "Tipo": row[4] if len(row) > 4 else "TABLE",
-                            "Descripción": (
-                                row[5] if len(row) > 5 else "Sin descripción"
+                            "Table": row[1],
+                            "Type": row[4] if len(row) > 4 else "TABLE",
+                            "Description": (
+                                row[5] if len(row) > 5 else "No description"
                             ),
                         }
                     )
                 return pd.DataFrame(table_data)
 
-        # Caso 8: Para consultas por región (promedio, suma, etc.)
+        # Case 8: For region-based queries (average, sum, etc.)
         if (
             "región" in user_question.lower()
             or "region" in user_question.lower()
             or "regiones" in user_question.lower()
         ) and len(data) > 0 and len(data[0]) == 2:
-            # Detectar si es promedio, suma, total, etc.
+            # Detect if it's average, sum, total, etc.
             if "promedio" in user_question.lower() or "avg" in sql_query.lower():
-                metric_name = "Promedio de Ingresos"
+                metric_name = "Average Revenue"
             elif "suma" in user_question.lower() or "total" in user_question.lower():
-                metric_name = "Total de Ingresos"
+                metric_name = "Total Revenue"
             elif "count" in sql_query.lower():
-                metric_name = "Cantidad"
+                metric_name = "Count"
             else:
-                metric_name = "Valor"
+                metric_name = "Value"
             
             formatted_rows = []
             for row in data:
                 region = row[0]
                 value = row[1]
                 
-                # Formatear el valor como moneda si es numérico
+                # Format value as currency if numeric
                 if isinstance(value, (int, float, Decimal)):
                     value_formatted = f"${float(value):,.2f}"
                 else:
                     value_formatted = str(value)
                 
                 formatted_rows.append({
-                    "Región": region,
+                    "Region": region,
                     metric_name: value_formatted
                 })
             
             return pd.DataFrame(formatted_rows)
 
-        # Caso 9: Por defecto - crear DataFrame de manera más robusta
+        # Case 9: Default - create DataFrame more robustly
         try:
-            # Intentar crear DataFrame directamente
+            # Try to create DataFrame directly
             df = pd.DataFrame(data)
             return df
         except Exception:
-            # Si falla, intentar con nombres genéricos de columnas
+            # If it fails, try with generic column names
             try:
                 if len(data) > 0 and isinstance(data[0], (tuple, list)):
-                    # Crear nombres de columna genéricos
+                    # Create generic column names
                     num_cols = len(data[0]) if data[0] else 1
-                    column_names = [f"Columna_{i+1}" for i in range(num_cols)]
+                    column_names = [f"Column_{i+1}" for i in range(num_cols)]
                     df = pd.DataFrame(data, columns=column_names)
                     return df
                 else:
-                    # Datos en formato no esperado
-                    df = pd.DataFrame({"Resultado": data if isinstance(data, list) else [data]})
+                    # Data in unexpected format
+                    df = pd.DataFrame({"Result": data if isinstance(data, list) else [data]})
                     return df
             except Exception:
-                # Último recurso: convertir todo a string
-                return pd.DataFrame({"Resultado": [str(data)]})
+                # Last resort: convert everything to string
+                return pd.DataFrame({"Result": [str(data)]})
 
     except Exception:
-        # Error en formateo, usar manejo robusto
+        # Formatting error, use robust handling
         try:
-            # Intentar crear DataFrame básico
+            # Try to create basic DataFrame
             if isinstance(data, list) and len(data) > 0:
                 if isinstance(data[0], (tuple, list)):
-                    # Lista de tuplas/listas
+                    # List of tuples/lists
                     num_cols = len(data[0]) if data[0] else 1
-                    column_names = [f"Columna_{i+1}" for i in range(num_cols)]
+                    column_names = [f"Column_{i+1}" for i in range(num_cols)]
                     return pd.DataFrame(data, columns=column_names)
                 else:
-                    # Lista simple
-                    return pd.DataFrame({"Resultado": data})
+                    # Simple list
+                    return pd.DataFrame({"Result": data})
             else:
-                # Caso genérico
-                return pd.DataFrame({"Resultado": [str(data)]})
+                # Generic case
+                return pd.DataFrame({"Result": [str(data)]})
         except Exception:
-            # Último recurso absoluto
-            return pd.DataFrame({"Error": [f"No se pudieron procesar los datos: {str(data)[:100]}..."]})
+            # Absolute last resort
+            return pd.DataFrame({"Error": [f"Could not process data: {str(data)[:100]}..."]})
 
 
 # ========================
-# Render de UI (mensajes y chat)
+# UI rendering (messages and chat)
 # ========================
 
 
 def _render_single_message(message):
-    """Renderiza un mensaje individual del historial."""
+    """Render a single message from history."""
     with st.chat_message(message["role"]):
         is_assistant_with_data = message["role"] == "assistant" and "data" in message
         if not is_assistant_with_data:
@@ -536,21 +536,21 @@ def _render_single_message(message):
             st.dataframe(message["data"], width='stretch')
             num_rows = len(message["data"])
             st.caption(
-                f"📊 {num_rows} registro{'s' if num_rows != 1 else ''} mostrado{'s' if num_rows != 1 else ''}"
+                f"📊 {num_rows} record{'s' if num_rows != 1 else ''} shown"
             )
 
 
 def display_chat_messages():
-    """Muestra el historial de mensajes del chat con tablas y contadores."""
-    st.header("💬 Chat con tu Base de Datos")
+    """Display chat message history with tables and counters."""
+    st.header("💬 Chat with your Database")
 
-    # Mostrar historial de mensajes
+    # Show message history
     for message in st.session_state.messages:
         _render_single_message(message)
 
 
 def _append_assistant_message(content, df=None):
-    """Agrega un mensaje del asistente al historial con un DataFrame opcional."""
+    """Add an assistant message to history with optional DataFrame."""
     st.session_state.messages.append({
         "role": "assistant",
         "content": content,
@@ -559,13 +559,13 @@ def _append_assistant_message(content, df=None):
 
 
 def _render_successful_result(result, prompt):
-    """Renderiza un resultado exitoso del agente y actualiza el historial."""
-    response_content = "Consulta ejecutada exitosamente:"
+    """Render a successful agent result and update history."""
+    response_content = "Query executed successfully:"
     st.write(response_content)
 
     if not result.get("result"):
-        st.write("No se encontraron resultados.")
-        _append_assistant_message("No se encontraron resultados.")
+        st.write("No results found.")
+        _append_assistant_message("No results found.")
         return
 
     try:
@@ -575,7 +575,7 @@ def _render_successful_result(result, prompt):
         st.dataframe(df, width='stretch')
         num_rows = len(df)
         st.caption(
-            f"📊 {num_rows} registro{'s' if num_rows != 1 else ''} encontrado{'s' if num_rows != 1 else ''}"
+            f"📊 {num_rows} record{'s' if num_rows != 1 else ''} found"
         )
         _append_assistant_message(response_content, df)
     except Exception:
@@ -585,30 +585,30 @@ def _render_successful_result(result, prompt):
 
 
 def _render_error_result(error_text):
-    """Renderiza un error del agente y actualiza el historial."""
+    """Render an agent error and update history."""
     st.error(error_text)
     _append_assistant_message(error_text)
 
 
 def process_user_input(prompt):
-    """Procesa la entrada del usuario con detección híbrida.
+    """Process user input with hybrid detection.
 
-    Flujo híbrido:
-    1. Detectar tipo de consulta (BD, ayuda, fuera de contexto)
-    2. Responder apropiadamente según el tipo
-    3. Para consultas DB: invocar agente NLP → SQL → ejecución
-    4. Para otras: mostrar respuestas educativas/redirección
+    Hybrid flow:
+    1. Detect query type (DB, help, out of context)
+    2. Respond appropriately according to type
+    3. For DB queries: invoke NLP agent → SQL → execution
+    4. For others: show educational/redirect responses
     """
-    # Agregar mensaje del usuario
+    # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
     with st.chat_message("user"):
         st.write(prompt)
 
-    # Detectar tipo de consulta
+    # Detect query type
     query_type = is_database_query(prompt)
     
-    # Un solo bloque de respuesta del asistente
+    # Single assistant response block
     with st.chat_message("assistant"):
         if query_type == "help":
             help_resp = get_help_response()
@@ -623,13 +623,13 @@ def process_user_input(prompt):
             return
 
         if query_type == "unclear":
-            st.info("🤔 No estoy seguro si preguntas sobre datos. Intentaré como consulta de BD...")
+            st.info("🤔 I'm not sure if you're asking about data. I'll try as a DB query...")
 
         if not st.session_state.agent:
-            _render_error_result("Error: No hay agente inicializado")
+            _render_error_result("Error: No agent initialized")
             return
 
-        with st.spinner("Procesando consulta..."):
+        with st.spinner("Processing query..."):
             result = st.session_state.agent.process_query(prompt)
 
         if result.get("success"):
@@ -640,43 +640,43 @@ def process_user_input(prompt):
 
 
 def display_logs_panel():
-    """Muestra el panel de logs explicativos"""
-    st.header("📋 Logs del Proceso")
+    """Show explanatory logs panel"""
+    st.header("📋 Process Logs")
 
     if st.session_state.processing_logs:
-        # Mostrar logs en orden reverso (más reciente primero)
-        for log in reversed(st.session_state.processing_logs[-10:]):  # Últimos 10 logs
+        # Show logs in reverse order (most recent first)
+        for log in reversed(st.session_state.processing_logs[-10:]):  # Last 10 logs
             with st.expander(f"⏰ {log['timestamp']} - {log['step']}", expanded=False):
                 st.code(log["content"])
     else:
-        st.info("No hay logs disponibles. Realiza una consulta para ver el proceso.")
+        st.info("No logs available. Make a query to see the process.")
 
 
 def main():
-    """Función principal de la app Streamlit.
+    """Main Streamlit app function.
 
-    Ensambla la UI y bootstrapping:
-    - Inicializa estado de sesión (mensajes, logs, conexión, agente)
-    - Gestiona conexión a Snowflake y crea el agente si hay credenciales
-    - Organiza layout (chat a la izquierda, sidebar + logs a la derecha)
-    - Coloca chat_input al final (fuera de columnas) para cumplir reglas Streamlit
+    Assembles UI and bootstrapping:
+    - Initialize session state (messages, logs, connection, agent)
+    - Manage Snowflake connection and create agent if credentials exist
+    - Organize layout (chat on left, sidebar + logs on right)
+    - Place chat_input at the end (outside columns) to comply with Streamlit rules
     """
-    st.title("🤖 Agente NLP para Consultas en Snowflake")
+    st.title("🤖 NLP Agent for Snowflake Queries")
     st.markdown(
-        "Haz preguntas en español y obten respuestas de tu base de datos Snowflake"
+        "Ask questions in Spanish and get answers from your Snowflake database"
     )
 
-    # Inicializar estado
+    # Initialize state
     initialize_session_state()
 
-    # Configurar conexión si no existe
+    # Set up connection if it doesn't exist
     if not st.session_state.db_connection:
-        with st.spinner("Conectando a Snowflake..."):
+        with st.spinner("Connecting to Snowflake..."):
             db_conn = SnowflakeConnection()
             if db_conn.connect():
                 st.session_state.db_connection = db_conn
 
-                # Inicializar agente (auto-detecta proveedor LLM)
+                # Initialize agent (auto-detects LLM provider)
                 google_api_key = os.getenv("GOOGLE_API_KEY")
                 groq_api_key = os.getenv("GROQ_API_KEY")
                 try:
@@ -685,17 +685,17 @@ def main():
                         groq_api_key=groq_api_key,
                         google_api_key=google_api_key,
                     )
-                    st.success("✅ Conexión establecida exitosamente!")
+                    st.success("✅ Connection established successfully!")
                 except Exception as e:
-                    st.error(f"❌ Error inicializando LLM: {e}")
+                    st.error(f"❌ Error initializing LLM: {e}")
                     st.stop()
             else:
                 st.error(
-                    "❌ No se pudo conectar a Snowflake. Verifica tu configuración."
+                    "❌ Could not connect to Snowflake. Check your configuration."
                 )
                 st.stop()
 
-    # Layout en columnas
+    # Column layout
     col1, col2 = st.columns([2, 1])
 
     with col1:
@@ -705,8 +705,8 @@ def main():
         setup_sidebar()
         display_logs_panel()
 
-    # Input del usuario (fuera del layout de columnas)
-    if prompt := st.chat_input("Escribe tu consulta en español..."):
+    # User input (outside column layout)
+    if prompt := st.chat_input("Write your query in Spanish..."):
         process_user_input(prompt)
 
 

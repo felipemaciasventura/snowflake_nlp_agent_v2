@@ -1,11 +1,11 @@
-from langchain_groq import ChatGroq  # Para usar con Groq (código conservado)
-from langchain_google_genai import ChatGoogleGenerativeAI  # Para usar con Gemini
+from langchain_groq import ChatGroq  # For use with Groq (code preserved)
+from langchain_google_genai import ChatGoogleGenerativeAI  # For use with Gemini
 
-# Importar ChatOllama con compatibilidad para diferentes versiones
+# Import ChatOllama with compatibility for different versions
 try:
-    from langchain_ollama import ChatOllama  # Versión más reciente
+    from langchain_ollama import ChatOllama  # Latest version
 except ImportError:
-    from langchain_community.chat_models import ChatOllama  # Versión legacy
+    from langchain_community.chat_models import ChatOllama  # Legacy version
 from langchain_community.utilities import SQLDatabase
 from langchain_experimental.sql import SQLDatabaseChain
 from langchain.prompts import PromptTemplate
@@ -17,110 +17,110 @@ from src.utils.config import config
 
 
 class SnowflakeNLPAgent:
-    """Agente NLP que traduce preguntas en español a SQL para Snowflake.
+    """NLP Agent that translates Spanish questions to SQL for Snowflake.
 
-    Ejecuta la consulta.
+    Executes the query.
 
-    Responsabilidades principales:
-    - Configurar el LLM (Groq, Gemini u Ollama, según configuración)
-    - Configurar una cadena SQL (SQLDatabaseChain) con un prompt en español
-    - Invocar la cadena con la pregunta del usuario
-    - Extraer la SQL generada de los intermediate_steps
-    - Ejecutar la SQL de forma segura en la base de datos y devolver filas reales
-    - Registrar pasos del proceso para visibilidad en la UI
+    Main responsibilities:
+    - Configure the LLM (Groq, Gemini or Ollama, according to configuration)
+    - Set up an SQL chain (SQLDatabaseChain) with a Spanish prompt
+    - Invoke the chain with the user's question
+    - Extract the generated SQL from intermediate_steps
+    - Execute the SQL safely in the database and return real rows
+    - Log process steps for UI visibility
     """
 
     def __init__(self, db_connection: str, groq_api_key: Optional[str] = None, google_api_key: Optional[str] = None):
-        # Seleccionar proveedor LLM disponible
+        # Select available LLM provider
         provider = config.get_available_llm_provider()
 
-        # Permitir override desde parámetros si se pasan explícitamente
+        # Allow override from parameters if passed explicitly
         groq_key = groq_api_key or config.GROQ_API_KEY
         google_key = google_api_key or config.GOOGLE_API_KEY
 
         if provider == "ollama":
-            # Usar Ollama (modelo local - prioridad máxima por privacidad)
+            # Use Ollama (local model - maximum privacy priority)
             self.llm = ChatOllama(
                 base_url=config.OLLAMA_BASE_URL,
                 model=config.OLLAMA_MODEL,
                 temperature=0.1,
             )
-            st.sidebar.info(f"LLM en uso: Ollama ({config.OLLAMA_MODEL}) - Local")
+            st.sidebar.info(f"LLM in use: Ollama ({config.OLLAMA_MODEL}) - Local")
         elif provider == "gemini" and google_key:
-            # Usar Gemini (recomendado si tienes plan estudiante)
+            # Use Gemini (recommended if you have student plan)
             self.llm = ChatGoogleGenerativeAI(
                 google_api_key=google_key,
                 model=config.GEMINI_MODEL,
                 temperature=0.1,
                 max_output_tokens=4000,
             )
-            st.sidebar.info("LLM en uso: Gemini (Google)")
+            st.sidebar.info("LLM in use: Gemini (Google)")
         elif provider == "groq" and groq_key:
-            # USO CON GROQ (código conservado):
+            # USE WITH GROQ (code preserved):
             # self.llm = ChatGroq(
             #     groq_api_key=groq_key,
             #     model_name=config.MODEL_NAME,
             #     temperature=0.1,
             #     max_tokens=4000,
             # )
-            # Se mantiene funcionalidad Groq activa, por defecto
+            # Groq functionality maintained active by default
             self.llm = ChatGroq(
                 groq_api_key=groq_key,
                 model_name=config.MODEL_NAME,
                 temperature=0.1,
                 max_tokens=4000,
             )
-            st.sidebar.info("LLM en uso: Groq (Llama)")
+            st.sidebar.info("LLM in use: Groq (Llama)")
         else:
-            raise RuntimeError("No hay proveedor LLM disponible. Configura GOOGLE_API_KEY, GROQ_API_KEY o OLLAMA_BASE_URL.")
+            raise RuntimeError("No LLM provider available. Configure GOOGLE_API_KEY, GROQ_API_KEY or OLLAMA_BASE_URL.")
 
         self.db = SQLDatabase.from_uri(db_connection)
 
-        # Crear prompt personalizado para SQLDatabaseChain
-        # Prompt en español para generar SQL segura y ejecutable en Snowflake - Optimizado para Bienes Raíces
-        sql_prompt = """Eres un experto en SQL para Snowflake especializado en bienes raíces. Genera SOLAMENTE la consulta SQL pura.
+        # Create custom prompt for SQLDatabaseChain
+        # English prompt to generate safe and executable SQL for Snowflake - Optimized for Real Estate
+        sql_prompt = """You are a Snowflake SQL expert specialized in real estate. Generate ONLY pure SQL query.
 
-INFORMACIÓN DE LA BASE DE DATOS:
+DATABASE INFORMATION:
 {table_info}
 
-🏡 CONTEXTO DE BIENES RAÍCES:
-Esta base de datos contiene:
-- PROPERTIES: Propiedades (bedrooms, bathrooms, sqft, price, property_type)
-- LOCATIONS: Ubicaciones (city, state, population, median_income)
-- AGENTS: Agentes (transaction_count, avg_sale_price, commission_rate)
-- TRANSACTIONS: Transacciones (sale_date, sale_price, days_on_market)
-- OWNERS: Propietarios (num_properties_owned, investor_flag)
+🏡 REAL ESTATE CONTEXT:
+This database contains:
+- PROPERTIES: Properties (bedrooms, bathrooms, sqft, price, property_type)
+- LOCATIONS: Locations (city, state, population, median_income)
+- AGENTS: Agents (transaction_count, avg_sale_price, commission_rate)
+- TRANSACTIONS: Transactions (sale_date, sale_price, days_on_market)
+- OWNERS: Owners (num_properties_owned, investor_flag)
 
-🔗 RELACIONES CLAVE:
+🔗 KEY RELATIONSHIPS:
 - properties.location_id = locations.location_id
 - transactions.property_id = properties.property_id
 - transactions.agent_id = agents.agent_id
 
-Pregunta: {input}
+Question: {input}
 
-❗ REGLAS OBLIGATORIAS:
-1. NUNCA uses ``` o backticks en tu respuesta
-2. NUNCA uses formato markdown o bloques de código
-3. RESPONDE SOLO CON SQL PURA - NADA MÁS
-4. NO agregues explicaciones, comentarios o texto adicional
-5. Para consultas de conteo: usa COUNT(*) sin LIMIT
-6. Para otras consultas: agrega LIMIT 10
-7. Para rankings: usa RANK() OVER (ORDER BY ...)
-8. Para precios: usa nombres de columnas como sale_price, list_price, price
+❗ MANDATORY RULES:
+1. NEVER use ``` or backticks in your response
+2. NEVER use markdown format or code blocks
+3. RESPOND ONLY WITH PURE SQL - NOTHING ELSE
+4. DO NOT add explanations, comments or additional text
+5. For count queries: use COUNT(*) without LIMIT
+6. For other queries: add LIMIT 10
+7. For rankings: use RANK() OVER (ORDER BY ...)
+8. For prices: use column names like sale_price, list_price, price
 
-📝 EJEMPLOS ESPECÍFICOS DE BIENES RAÍCES:
-Pregunta: propiedades más caras por ciudad
-Respuesta: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
+📝 SPECIFIC REAL ESTATE EXAMPLES:
+Question: most expensive properties by city
+Answer: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
 
-Pregunta: agentes con más ventas
-Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10
+Question: agents with most sales
+Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10
 
-⛔ NUNCA HAGAS ESTO:
+⛔ NEVER DO THIS:
 - ``` SELECT ... ```
 - ```sql SELECT ... ```
-- Explicaciones antes o después del SQL
+- Explanations before or after SQL
 
-✅ SQL PURA SOLAMENTE:"""
+✅ PURE SQL ONLY:"""
 
         self.sql_chain = SQLDatabaseChain.from_llm(
             self.llm,
@@ -133,85 +133,85 @@ Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY 
         )
     
     def clean_sql_response(self, sql_text: str) -> str:
-        """Limpia respuesta SQL removiendo markdown y formato extra - Optimizado para CodeLlama"""
+        """Clean SQL response by removing markdown and extra formatting - Optimized for CodeLlama"""
         if not isinstance(sql_text, str):
             return ""
         
         import re
         
-        # Remover espacios al inicio y final
+        # Remove leading and trailing spaces
         cleaned = sql_text.strip()
         
-        # PASO 1: Remover bloques de código markdown multilínea
-        # Patrón para ```\nSELECT...\n```
+        # STEP 1: Remove multiline markdown code blocks
+        # Pattern for ```\nSELECT...\n```
         multiline_pattern = r'^```\s*\n(.*?)\n```$'
         match = re.search(multiline_pattern, cleaned, re.DOTALL | re.IGNORECASE)
         if match:
             cleaned = match.group(1).strip()
         else:
-            # PASO 2: Remover bloques de código inline ```sql...```
+            # STEP 2: Remove inline code blocks ```sql...```
             inline_pattern = r'^```(?:sql)?\s*\n?(.*?)\n?```$'
             match = re.search(inline_pattern, cleaned, re.DOTALL | re.IGNORECASE)
             if match:
                 cleaned = match.group(1).strip()
         
-        # PASO 3: Remover backticks sueltos al inicio o final (múltiples iteraciones)
+        # STEP 3: Remove loose backticks at beginning or end (multiple iterations)
         while cleaned.startswith('`') or cleaned.endswith('`'):
             cleaned = cleaned.strip('`').strip()
         
-        # PASO 4: Si aún hay backticks al inicio de líneas, removerlos
+        # STEP 4: If there are still backticks at line beginnings, remove them
         lines = cleaned.split('\n')
         cleaned_lines = []
         for line in lines:
             line = line.strip()
-            # Remover backticks al inicio de línea
+            # Remove backticks at line beginning
             while line.startswith('`'):
                 line = line[1:].strip()
-            if line:  # Solo agregar líneas no vacías
+            if line:  # Only add non-empty lines
                 cleaned_lines.append(line)
         
-        # PASO 5: Filtrar solo líneas SQL válidas
+        # STEP 5: Filter only valid SQL lines
         sql_lines = []
         for line in cleaned_lines:
-            # Mantener líneas que parecen SQL
+            # Keep lines that look like SQL
             if (line.upper().startswith(('SELECT', 'INSERT', 'UPDATE', 'DELETE', 'WITH', 'FROM', 'WHERE', 'GROUP', 'ORDER', 'HAVING', 'LIMIT', 'SHOW', 'DESCRIBE', 'EXPLAIN')) or
                 any(keyword in line.upper() for keyword in ['FROM', 'WHERE', 'AND', 'OR', 'ORDER BY', 'GROUP BY', 'HAVING', 'INNER JOIN', 'LEFT JOIN', 'RIGHT JOIN'])):
                 sql_lines.append(line)
         
-        # PASO 6: Unir las líneas SQL
-        result = ' '.join(sql_lines).strip()  # Usar espacio en lugar de \n para una línea
+        # STEP 6: Join SQL lines
+        result = ' '.join(sql_lines).strip()  # Use space instead of \n for one line
         
-        # PASO 7: Limpiar espacios múltiples
+        # STEP 7: Clean multiple spaces
         result = re.sub(r'\s+', ' ', result)
         
         return result
 
     def process_query(self, user_question: str) -> Dict[str, Any]:
-        """Procesa la consulta de usuario y devuelve datos listos para la UI.
+        """Process user query and return data ready for the UI.
 
-        Flujo:
-        1) Invoca la cadena SQL para obtener SQL a partir de lenguaje natural
-        2) Extrae la SQL generada desde intermediate_steps de LangChain
-        3) Normaliza/remueve formato markdown si existe
-        4) Ejecuta la SQL directamente contra Snowflake (vía SQLDatabase)
-        5) Si no hay SQL clara, intenta alternativas (intermediate_steps, respuesta LLM)
-        6) Registra cada paso para trazabilidad en Streamlit
+        Flow:
+        1) Invoke SQL chain to get SQL from natural language
+        2) Extract generated SQL from LangChain intermediate_steps
+        3) Normalize/remove markdown format if it exists
+        4) Execute SQL directly against Snowflake (via SQLDatabase)
+        5) If no clear SQL, try alternatives (intermediate_steps, LLM response)
+        6) Log each step for traceability in Streamlit
         """
         try:
-            # Log del inicio del procesamiento
-            self.log_step("🔍 Procesando consulta", user_question)
+            # Log processing start
+            self.log_step("🔍 Processing query", user_question)
 
-            # Ejecutar la cadena SQL usando el método invoke
+            # Execute SQL chain using invoke method
             result = self.sql_chain.invoke(user_question)
 
-            # Log de la consulta generada
+            # Log generated query
             sql_query = "N/A"
             if "intermediate_steps" in result and result["intermediate_steps"]:
                 try:
-                    # Intentar diferentes estructuras posibles
+                    # Try different possible structures
                     step = result["intermediate_steps"][0]
                     if isinstance(step, dict):
-                        # Verificar diferentes claves posibles
+                        # Check different possible keys
                         sql_query = (
                             step.get("sql_cmd")
                             or step.get("query")
@@ -220,34 +220,33 @@ Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY 
                         )
                     else:
                         sql_query = str(step)
-                    self.log_step("📝 Consulta SQL generada", sql_query)
+                    self.log_step("📝 Generated SQL query", sql_query)
                 except (KeyError, IndexError, TypeError):
                     self.log_step(
-                        "⚠️ No se pudo extraer SQL",
-                        f"Estructura: {result.get('intermediate_steps', 'N/A')}",
+                        "⚠️ Could not extract SQL",
+                        f"Structure: {result.get('intermediate_steps', 'N/A')}",
                     )
 
-            # Si tenemos una SQL clara, ejecutarla directamente para obtener datos
-            # reales
+            # If we have clear SQL, execute it directly to get real data
             actual_result = None
             if isinstance(sql_query, str):
-                # Normaliza la SQL (remueve posibles backticks/markdown) - Mejorado para CodeLlama
+                # Normalize SQL (remove possible backticks/markdown) - Enhanced for CodeLlama
                 cleaned_sql = self.clean_sql_response(sql_query)
                 if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                     try:
-                        self.log_step("🚀 Ejecutando SQL detectada", cleaned_sql)
+                        self.log_step("🚀 Executing detected SQL", cleaned_sql)
                         actual_result = self.db.run(cleaned_sql)
                         self.log_step(
-                            "✅ Resultados obtenidos",
-                            f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} filas",  # noqa: E501
+                            "✅ Results obtained",
+                            f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",  # noqa: E501
                         )
                     except Exception as e:
                         self.log_step(
-                            "⚠️ Error ejecutando SQL generada", f"Error: {str(e)}"
+                            "⚠️ Error executing generated SQL", f"Error: {str(e)}"
                         )
                         actual_result = None
 
-            # Si no pudimos ejecutar la SQL anterior, intentar extraer datos de
+            # If we couldn't execute the previous SQL, try extracting data from
             # intermediate_steps
             if (
                 actual_result is None
@@ -264,31 +263,31 @@ Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY 
                             ):
                                 actual_result = step[key]
                                 self.log_step(
-                                    "✅ Datos encontrados en intermediate_steps",
-                                    f"Campo: {key}, "
-                                    f"Datos: {str(actual_result)[:100]}...",
+                                    "✅ Data found in intermediate_steps",
+                                    f"Field: {key}, "
+                                    f"Data: {str(actual_result)[:100]}...",
                                 )
                                 break
                     if actual_result:
                         break
 
-            # Último recurso: si el resultado final es una SQL, ejecutarla
+            # Last resort: if the final result is SQL, execute it
             if actual_result is None:
                 final_answer = result.get("result")
                 if isinstance(final_answer, str):
-                    # Limpiar la respuesta final también
+                    # Clean the final response too
                     cleaned_final = self.clean_sql_response(final_answer)
                     if cleaned_final and cleaned_final.upper().startswith(
                         ("SELECT", "SHOW", "DESCRIBE")
                     ):
                         try:
                             self.log_step(
-                                "🚀 Ejecutando respuesta LLM como SQL", cleaned_final
+                                "🚀 Executing LLM response as SQL", cleaned_final
                             )
                             actual_result = self.db.run(cleaned_final)
                         except Exception as e:
                             self.log_step(
-                                "⚠️ Error ejecutando respuesta LLM", f"Error: {str(e)}"
+                                "⚠️ Error executing LLM response", f"Error: {str(e)}"
                             )
                             actual_result = final_answer
                     else:
@@ -311,7 +310,7 @@ Respuesta: SELECT first_name, last_name, transaction_count FROM agents ORDER BY 
             return {"success": False, "error": error_msg, "result": None}
 
     def log_step(self, step_name: str, content: str):
-        """Registra pasos del procesamiento en Streamlit"""
+        """Log processing steps in Streamlit"""
         if "processing_logs" not in st.session_state:
             st.session_state.processing_logs = []
 

@@ -1,5 +1,5 @@
 """
-Configuración de la aplicación
+Application configuration
 """
 
 import os
@@ -7,12 +7,12 @@ import requests
 from typing import Dict
 from dotenv import load_dotenv
 
-# Cargar variables de entorno
+# Load environment variables
 load_dotenv()
 
 
 class Config:
-    """Clase para manejar la configuración de la aplicación"""
+    """Class to handle application configuration"""
 
     def __init__(self):
         # Snowflake
@@ -42,7 +42,7 @@ class Config:
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
     
     def is_ollama_available(self) -> bool:
-        """Verifica si Ollama está disponible y accesible"""
+        """Check if Ollama is available and accessible"""
         try:
             response = requests.get(f"{self.OLLAMA_BASE_URL}/api/tags", timeout=3)
             return response.status_code == 200
@@ -50,7 +50,7 @@ class Config:
             return False
 
     def get_available_llm_provider(self) -> str:
-        """Detecta qué proveedor de LLM está disponible"""
+        """Detect which LLM provider is available"""
         if self.LLM_PROVIDER == "groq" and self.GROQ_API_KEY:
             return "groq"
         elif self.LLM_PROVIDER == "gemini" and self.GOOGLE_API_KEY:
@@ -58,7 +58,7 @@ class Config:
         elif self.LLM_PROVIDER == "ollama" and self.is_ollama_available():
             return "ollama"
         elif self.LLM_PROVIDER == "auto":
-            # Auto-detectar: prioridad Ollama > Gemini > Groq (local primero)
+            # Auto-detect: priority Ollama > Gemini > Groq (local first)
             if self.is_ollama_available():
                 return "ollama"
             elif self.GOOGLE_API_KEY:
@@ -68,7 +68,7 @@ class Config:
         return None
     
     def validate(self) -> Dict:
-        """Valida que todas las variables requeridas estén configuradas"""
+        """Validate that all required variables are configured"""
         required_vars = [
             "SNOWFLAKE_ACCOUNT",
             "SNOWFLAKE_USER",
@@ -77,7 +77,7 @@ class Config:
             "SNOWFLAKE_DATABASE",
         ]
         
-        # Verificar que al menos un proveedor LLM esté disponible
+        # Verify that at least one LLM provider is available
         llm_provider = self.get_available_llm_provider()
         if not llm_provider:
             required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY or OLLAMA_BASE_URL"])
@@ -90,5 +90,5 @@ class Config:
         return {"valid": len(missing_vars) == 0, "missing_vars": missing_vars}
 
 
-# Instancia global de configuración
+# Global configuration instance
 config = Config()

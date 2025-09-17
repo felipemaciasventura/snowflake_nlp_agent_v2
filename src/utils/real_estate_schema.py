@@ -1,42 +1,42 @@
 """
-Módulo de esquema inteligente para bienes raíces
-Basado en create_tables.sql - Contiene información del esquema para mejorar queries NLP
+Intelligent schema module for real estate
+Based on create_tables.sql - Contains schema information to improve NLP queries
 """
 
 
 class RealEstateSchema:
-    """Clase que contiene información del esquema de bienes raíces para mejorar la generación de SQL"""
+    """Class that contains real estate schema information to improve SQL generation"""
     
-    # Información de tablas principales y sus propósitos
+    # Information about main tables and their purposes
     TABLES_INFO = {
         'locations': {
-            'description': 'Información demográfica y geográfica de ubicaciones',
+            'description': 'Demographic and geographic information of locations',
             'key_columns': ['location_id', 'city', 'state', 'county', 'zipcode', 'population', 'median_income', 'avg_sale_price'],
-            'common_queries': ['estadísticas por ciudad', 'información demográfica', 'precios por ubicación']
+            'common_queries': ['statistics by city', 'demographic information', 'prices by location']
         },
         'agents': {
-            'description': 'Información de agentes de bienes raíces',
+            'description': 'Real estate agent information',
             'key_columns': ['agent_id', 'first_name', 'last_name', 'agency', 'transaction_count', 'avg_sale_price', 'commission_rate'],
-            'common_queries': ['agentes con más ventas', 'comisiones promedio', 'performance de agentes']
+            'common_queries': ['agents with most sales', 'average commissions', 'agent performance']
         },
         'owners': {
-            'description': 'Información de propietarios de inmuebles',
+            'description': 'Property owner information',
             'key_columns': ['owner_id', 'first_name', 'last_name', 'num_properties_owned', 'total_portfolio_value', 'investor_flag'],
-            'common_queries': ['propietarios con más propiedades', 'inversionistas', 'portafolios más valiosos']
+            'common_queries': ['owners with most properties', 'investors', 'most valuable portfolios']
         },
         'properties': {
-            'description': 'Información detallada de propiedades inmobiliarias',
+            'description': 'Detailed real estate property information',
             'key_columns': ['property_id', 'location_id', 'price', 'bedrooms', 'bathrooms', 'sqft', 'property_type', 'status'],
-            'common_queries': ['propiedades por características', 'precios por tipo', 'inventario disponible']
+            'common_queries': ['properties by characteristics', 'prices by type', 'available inventory']
         },
         'transactions': {
-            'description': 'Registros de transacciones de compra-venta',
+            'description': 'Buy-sell transaction records',
             'key_columns': ['transaction_id', 'property_id', 'sale_date', 'sale_price', 'agent_id', 'days_on_market'],
-            'common_queries': ['ventas recientes', 'volumen de transacciones', 'tiempo en mercado']
+            'common_queries': ['recent sales', 'transaction volume', 'time on market']
         }
     }
     
-    # Relaciones principales entre tablas
+    # Main relationships between tables
     RELATIONSHIPS = {
         'properties_locations': 'properties.location_id = locations.location_id',
         'properties_owners': 'properties.owner_id = owners.owner_id',
@@ -45,17 +45,17 @@ class RealEstateSchema:
         'properties_listing_agent': 'properties.listing_agent_id = agents.agent_id'
     }
     
-    # Campos comunes para formateo monetario
+    # Common fields for monetary formatting
     MONEY_FIELDS = [
         'price', 'sale_price', 'list_price', 'avg_sale_price', 'avg_listing_price',
         'median_income', 'closing_costs', 'mortgage_amount', 'down_payment',
         'commission_rate', 'hoa_fee', 'total_portfolio_value', 'average_property_value'
     ]
     
-    # Campos de área/tamaño
+    # Area/size fields
     AREA_FIELDS = ['sqft', 'lot_size', 'price_per_sqft']
     
-    # Palabras clave que indican diferentes tipos de consultas
+    # Keywords that indicate different query types
     QUERY_PATTERNS = {
         'ranking': ['ranking', 'top', 'mejores', 'primeros', 'más caros', 'más baratos', 'mayor', 'menor'],
         'aggregation': ['promedio', 'suma', 'total', 'count', 'máximo', 'mínimo', 'avg', 'sum', 'max', 'min'],
@@ -67,11 +67,11 @@ class RealEstateSchema:
     
     @classmethod
     def get_table_suggestions(cls, user_query: str) -> list:
-        """Sugiere qué tablas pueden ser relevantes para la consulta del usuario"""
+        """Suggest which tables might be relevant for the user's query"""
         query_lower = user_query.lower()
         relevant_tables = []
         
-        # Detectar tablas relevantes basado en palabras clave
+        # Detect relevant tables based on keywords
         if any(word in query_lower for word in ['ciudad', 'ubicación', 'zona', 'demográfico', 'población']):
             relevant_tables.append('locations')
             
@@ -91,7 +91,7 @@ class RealEstateSchema:
     
     @classmethod
     def get_join_suggestions(cls, tables: list) -> list:
-        """Sugiere JOINs apropiados para las tablas especificadas"""
+        """Suggest appropriate JOINs for the specified tables"""
         joins = []
         
         if 'properties' in tables and 'locations' in tables:
@@ -113,22 +113,22 @@ class RealEstateSchema:
     
     @classmethod
     def get_schema_context(cls, user_query: str) -> str:
-        """Genera contexto del esquema relevante para la consulta del usuario"""
+        """Generate relevant schema context for the user's query"""
         relevant_tables = cls.get_table_suggestions(user_query)
         
-        context = "CONTEXTO DEL ESQUEMA DE BIENES RAÍCES:\n\n"
-        context += "TABLAS PRINCIPALES:\n"
+        context = "REAL ESTATE SCHEMA CONTEXT:\n\n"
+        context += "MAIN TABLES:\n"
         
         for table in relevant_tables:
             if table in cls.TABLES_INFO:
                 info = cls.TABLES_INFO[table]
                 context += f"- {table.upper()}: {info['description']}\n"
-                context += f"  Columnas clave: {', '.join(info['key_columns'])}\n"
+                context += f"  Key columns: {', '.join(info['key_columns'])}\n"
         
         if len(relevant_tables) > 1:
             joins = cls.get_join_suggestions(relevant_tables)
             if joins:
-                context += f"\nRELACIONES SUGERIDAS:\n"
+                context += f"\nSUGGESTED RELATIONSHIPS:\n"
                 for join in joins:
                     context += f"- {join}\n"
         
@@ -136,35 +136,35 @@ class RealEstateSchema:
     
     @classmethod
     def get_example_queries(cls) -> dict:
-        """Devuelve ejemplos de consultas por categoría"""
+        """Return example queries by category"""
         return {
-            'precios': [
-                "¿Cuál es el precio promedio por ciudad?",
-                "Muéstrame las 10 propiedades más caras",
-                "¿Qué ciudad tiene los precios más altos?"
+            'prices': [
+                "What is the average price per city?",
+                "Show me the 10 most expensive properties",
+                "Which city has the highest prices?"
             ],
-            'agentes': [
-                "¿Qué agente ha vendido más propiedades?",
-                "¿Cuál es la comisión promedio de los agentes?",
-                "Muéstrame los agentes con mejor performance"
+            'agents': [
+                "Which agent has sold the most properties?",
+                "What is the average commission of agents?",
+                "Show me agents with best performance"
             ],
-            'ubicaciones': [
-                "¿Qué ciudades tienen más población?",
-                "Muéstrame estadísticas demográficas por condado",
-                "¿Cuál es el ingreso promedio por ubicación?"
+            'locations': [
+                "Which cities have the most population?",
+                "Show me demographic statistics by county",
+                "What is the average income by location?"
             ],
-            'propiedades': [
-                "Lista propiedades con más de 3 dormitorios",
-                "¿Cuántas propiedades tienen piscina?",
-                "Muéstrame propiedades disponibles por tipo"
+            'properties': [
+                "List properties with more than 3 bedrooms",
+                "How many properties have a pool?",
+                "Show me available properties by type"
             ],
-            'transacciones': [
-                "¿Cuántas transacciones hubo el mes pasado?",
-                "¿Cuál es el tiempo promedio en mercado?",
-                "Muéstrame las ventas más recientes"
+            'transactions': [
+                "How many transactions were there last month?",
+                "What is the average time on market?",
+                "Show me the most recent sales"
             ]
         }
 
 
-# Instancia global para uso en la aplicación
+# Global instance for use in the application
 real_estate_schema = RealEstateSchema()

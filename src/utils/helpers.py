@@ -1,5 +1,5 @@
 """
-Utilidades y helpers para la aplicación
+Utilities and helpers for the application
 """
 
 import logging
@@ -10,13 +10,13 @@ import traceback
 
 
 class LogManager:
-    """Manejador de logs para la aplicación"""
+    """Log manager for the application"""
 
     def __init__(self):
         self.logs: List[Dict[str, Any]] = []
 
     def add_log(self, category: str, message: str, level: str = "INFO"):
-        """Agrega un nuevo log"""
+        """Add a new log entry"""
         log_entry = {
             "timestamp": datetime.now().strftime("%H:%M:%S"),
             "category": category,
@@ -25,7 +25,7 @@ class LogManager:
         }
         self.logs.append(log_entry)
 
-        # También log al logger de Python
+        # Also log to Python logger
         if level == "ERROR":
             logging.error(f"{category}: {message}")
         elif level == "WARNING":
@@ -34,18 +34,18 @@ class LogManager:
             logging.info(f"{category}: {message}")
 
     def get_logs(self) -> List[Dict[str, Any]]:
-        """Obtiene todos los logs"""
+        """Get all logs"""
         return self.logs
 
     def clear_logs(self):
-        """Limpia todos los logs"""
+        """Clear all logs"""
         self.logs.clear()
 
     def display_logs(self):
-        """Muestra los logs en Streamlit"""
+        """Display logs in Streamlit"""
         if self.logs:
-            st.subheader("📝 Logs del Sistema")
-            for log in self.logs[-10:]:  # Mostrar últimos 10 logs
+            st.subheader("📝 System Logs")
+            for log in self.logs[-10:]:  # Show last 10 logs
                 level_icon = {"INFO": "ℹ️", "WARNING": "⚠️", "ERROR": "❌"}.get(
                     log["level"], "📝"
                 )
@@ -57,29 +57,29 @@ class LogManager:
 
 
 class ErrorHandler:
-    """Manejador de errores para la aplicación"""
+    """Error handler for the application"""
 
     @staticmethod
-    def handle_exception(e: Exception, context: str = "Operación") -> str:
-        """Maneja excepciones y retorna mensaje de error amigable"""
-        error_msg = f"Error en {context}: {str(e)}"
+    def handle_exception(e: Exception, context: str = "Operation") -> str:
+        """Handle exceptions and return user-friendly error message"""
+        error_msg = f"Error in {context}: {str(e)}"
 
-        # Log del error completo
+        # Log the complete error
         logging.error(f"{error_msg}\n{traceback.format_exc()}")
 
-        # Agregar al log manager
+        # Add to log manager
         log_manager.add_log("❌ Error", error_msg, "ERROR")
 
         return error_msg
 
     @staticmethod
     def validate_connection(connection) -> bool:
-        """Valida si una conexión está activa"""
+        """Validate if a connection is active"""
         try:
             if connection is None:
                 return False
 
-            # Para conexiones de Snowflake, verificar con una query simple
+            # For Snowflake connections, verify with a simple query
             cursor = connection.cursor()
             cursor.execute("SELECT 1")
             cursor.fetchone()
@@ -91,9 +91,9 @@ class ErrorHandler:
 
     @staticmethod
     def safe_execute(
-        func, *args, default_return=None, context: str = "Operación", **kwargs
+        func, *args, default_return=None, context: str = "Operation", **kwargs
     ):
-        """Ejecuta una función de forma segura con manejo de errores"""
+        """Execute a function safely with error handling"""
         try:
             return func(*args, **kwargs)
         except Exception as e:
@@ -101,11 +101,11 @@ class ErrorHandler:
             return default_return
 
 
-# Instancias globales
+# Global instances
 log_manager = LogManager()
 error_handler = ErrorHandler()
 
-# Configurar logging básico
+# Configure basic logging
 logging.basicConfig(
     level=logging.INFO, format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
 )
