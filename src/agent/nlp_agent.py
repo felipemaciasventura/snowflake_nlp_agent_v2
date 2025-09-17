@@ -14,6 +14,7 @@ from typing import Dict, Any, Optional
 
 import pandas as pd
 from src.utils.config import config
+from src.utils.schema_obfuscator import schema_obfuscator
 
 
 class SnowflakeNLPAgent:
@@ -76,51 +77,55 @@ class SnowflakeNLPAgent:
 
         self.db = SQLDatabase.from_uri(db_connection)
 
-        # Create custom prompt for SQLDatabaseChain
-        # English prompt to generate safe and executable SQL for Snowflake - Optimized for Real Estate
-        sql_prompt = """You are a Snowflake SQL expert specialized in real estate. Generate ONLY pure SQL query.
+        # Create custom prompt for SQLDatabaseChain with obfuscated schema
+        # Secure prompt using obfuscated table/column names to protect real schema
+        obfuscated_schema_info = schema_obfuscator.get_obfuscated_schema_info()
+        
+        sql_prompt = f"""You are a Snowflake SQL expert specialized in real estate. Generate ONLY pure SQL query using the secure schema names provided.
 
-DATABASE INFORMATION:
-{table_info}
+IMPORTANT SECURITY NOTE: Use ONLY the secure table/column names shown below. Never use real database names.
 
-🏡 REAL ESTATE CONTEXT:
-This database contains:
-- PROPERTIES: Properties (bedrooms, bathrooms, sqft, price, property_type)
-- LOCATIONS: Locations (city, state, population, median_income)
-- AGENTS: Agents (transaction_count, avg_sale_price, commission_rate)
-- TRANSACTIONS: Transactions (sale_date, sale_price, days_on_market)
-- OWNERS: Owners (num_properties_owned, investor_flag)
+{obfuscated_schema_info}
 
-🔗 KEY RELATIONSHIPS:
-- properties.location_id = locations.location_id
-- transactions.property_id = properties.property_id
-- transactions.agent_id = agents.agent_id
+📋 ADDITIONAL CONTEXT FROM DATABASE:
+{{table_info}}
 
-Question: {input}
+Question: {{input}}
 
 ❗ MANDATORY RULES:
 1. NEVER use ``` or backticks in your response
-2. NEVER use markdown format or code blocks
+2. NEVER use markdown format or code blocks  
 3. RESPOND ONLY WITH PURE SQL - NOTHING ELSE
-4. DO NOT add explanations, comments or additional text
+4. USE ONLY the secure table names: real_estate_items, geographic_areas, sales_representatives, commercial_events, property_holders
 5. For count queries: use COUNT(*) without LIMIT
 6. For other queries: add LIMIT 10
-7. For rankings: use RANK() OVER (ORDER BY ...)
-8. For prices: use column names like sale_price, list_price, price
+7. For rankings: use RANK() OVER (ORDER BY ...) or ROW_NUMBER() OVER
+8. For monetary values: use monetary_value, final_amount, average_deal_value fields
 
-📝 SPECIFIC REAL ESTATE EXAMPLES:
+📝 SECURE QUERY EXAMPLES:
 Question: most expensive properties by city
-Answer: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
+Answer: SELECT ga.city_name, rei.item_id, rei.monetary_value, RANK() OVER (PARTITION BY ga.city_name ORDER BY rei.monetary_value DESC) AS rank FROM real_estate_items rei JOIN geographic_areas ga ON rei.area_ref = ga.area_id WHERE rei.monetary_value > 500000 ORDER BY ga.city_name, rank LIMIT 10
 
 Question: agents with most sales
-Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10
+Answer: SELECT first_name, last_name, deal_count FROM sales_representatives ORDER BY deal_count DESC LIMIT 10
+
+Question: recent transactions
+Answer: SELECT ce.completion_date, ce.final_amount, rei.item_id FROM commercial_events ce JOIN real_estate_items rei ON ce.item_ref = rei.item_id ORDER BY ce.completion_date DESC LIMIT 10
 
 ⛔ NEVER DO THIS:
-- ``` SELECT ... ```
-- ```sql SELECT ... ```
-- Explanations before or after SQL
+- Use real table names (properties, locations, agents, transactions, owners)
+- Use ``` SELECT ... ``` or ```sql SELECT ... ```
+- Add explanations before or after SQL
+- Use real column names like property_id, location_id, agent_id
 
-✅ PURE SQL ONLY:"""
+✅ ALWAYS USE SECURE NAMES:
+- real_estate_items instead of properties
+- geographic_areas instead of locations  
+- sales_representatives instead of agents
+- commercial_events instead of transactions
+- property_holders instead of owners
+
+Generate PURE SQL using ONLY the secure schema names."""
 
         self.sql_chain = SQLDatabaseChain.from_llm(
             self.llm,
@@ -189,12 +194,12 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
     def process_query(self, user_question: str) -> Dict[str, Any]:
         """Process user query and return data ready for the UI.
 
-        Flow:
-        1) Invoke SQL chain to get SQL from natural language
-        2) Extract generated SQL from LangChain intermediate_steps
+        Secure Flow with Schema Obfuscation:
+        1) Invoke SQL chain to get obfuscated SQL from natural language
+        2) Extract generated obfuscated SQL from LangChain intermediate_steps
         3) Normalize/remove markdown format if it exists
-        4) Execute SQL directly against Snowflake (via SQLDatabase)
-        5) If no clear SQL, try alternatives (intermediate_steps, LLM response)
+        4) Translate obfuscated SQL to real schema names using SchemaObfuscator
+        5) Execute real SQL against Snowflake (via SQLDatabase)
         6) Log each step for traceability in Streamlit
         """
         try:
@@ -227,22 +232,40 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
                         f"Structure: {result.get('intermediate_steps', 'N/A')}",
                     )
 
-            # If we have clear SQL, execute it directly to get real data
+            # If we have clear SQL, translate and execute it to get real data
             actual_result = None
             if isinstance(sql_query, str):
                 # Normalize SQL (remove possible backticks/markdown) - Enhanced for CodeLlama
-                cleaned_sql = self.clean_sql_response(sql_query)
-                if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
+                cleaned_obfuscated_sql = self.clean_sql_response(sql_query)
+                
+                if cleaned_obfuscated_sql and cleaned_obfuscated_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                     try:
-                        self.log_step("🚀 Executing detected SQL", cleaned_sql)
-                        actual_result = self.db.run(cleaned_sql)
+                        # Log the obfuscated SQL generated by LLM
+                        self.log_step("🔐 Obfuscated SQL generated", cleaned_obfuscated_sql)
+                        
+                        # Validate that SQL uses only obfuscated names for security
+                        is_secure, violations = schema_obfuscator.validate_obfuscated_sql(cleaned_obfuscated_sql)
+                        if not is_secure:
+                            self.log_step(
+                                "⚠️ Security violation in SQL", 
+                                f"Real schema names detected: {', '.join(violations)}"
+                            )
+                        
+                        # Translate obfuscated SQL to real schema names
+                        real_sql = schema_obfuscator.translate_to_real_sql(cleaned_obfuscated_sql)
+                        self.log_step("🔄 Translated to real SQL", real_sql)
+                        
+                        # Execute the real SQL against Snowflake
+                        self.log_step("🚀 Executing real SQL", real_sql)
+                        actual_result = self.db.run(real_sql)
                         self.log_step(
                             "✅ Results obtained",
                             f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",  # noqa: E501
                         )
+                        
                     except Exception as e:
                         self.log_step(
-                            "⚠️ Error executing generated SQL", f"Error: {str(e)}"
+                            "⚠️ Error executing SQL", f"Error: {str(e)}"
                         )
                         actual_result = None
 
@@ -271,20 +294,22 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
                     if actual_result:
                         break
 
-            # Last resort: if the final result is SQL, execute it
+            # Last resort: if the final result is SQL, translate and execute it
             if actual_result is None:
                 final_answer = result.get("result")
                 if isinstance(final_answer, str):
                     # Clean the final response too
-                    cleaned_final = self.clean_sql_response(final_answer)
-                    if cleaned_final and cleaned_final.upper().startswith(
+                    cleaned_final_obfuscated = self.clean_sql_response(final_answer)
+                    if cleaned_final_obfuscated and cleaned_final_obfuscated.upper().startswith(
                         ("SELECT", "SHOW", "DESCRIBE")
                     ):
                         try:
+                            # Translate obfuscated final response to real SQL
+                            real_final_sql = schema_obfuscator.translate_to_real_sql(cleaned_final_obfuscated)
                             self.log_step(
-                                "🚀 Executing LLM response as SQL", cleaned_final
+                                "🚀 Executing translated LLM response", real_final_sql
                             )
-                            actual_result = self.db.run(cleaned_final)
+                            actual_result = self.db.run(real_final_sql)
                         except Exception as e:
                             self.log_step(
                                 "⚠️ Error executing LLM response", f"Error: {str(e)}"
@@ -295,19 +320,41 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
                 else:
                     actual_result = final_answer
 
+            # Prepare final result with both obfuscated and real SQL for debugging
+            final_sql_query = sql_query if isinstance(sql_query, str) else str(sql_query)
+            
             return {
                 "success": True,
                 "result": actual_result,
-                "sql_query": (
-                    sql_query if isinstance(sql_query, str) else str(sql_query)
-                ),
+                "sql_query": final_sql_query,
+                "obfuscated_sql": final_sql_query,  # For debugging - shows what LLM generated
+                "real_sql": schema_obfuscator.translate_to_real_sql(final_sql_query) if final_sql_query else None,
                 "intermediate_steps": result.get("intermediate_steps", []),
+                "security_layer": "obfuscated",  # Indicate security layer is active
             }
 
         except Exception as e:
             error_msg = str(e)
-            self.log_step("❌ Error", error_msg)
-            return {"success": False, "error": error_msg, "result": None}
+            self.log_step("❌ Error in query processing", error_msg)
+            
+            # Enhanced error context for schema obfuscation issues
+            error_context = {
+                "success": False, 
+                "error": error_msg, 
+                "result": None,
+                "security_layer": "obfuscated"
+            }
+            
+            # Add specific error details if it's a translation issue
+            if "schema" in error_msg.lower() or "translate" in error_msg.lower():
+                error_context["error_type"] = "schema_translation"
+                error_context["suggestion"] = "Check if LLM used correct obfuscated table names"
+                self.log_step(
+                    "⚠️ Schema Translation Error", 
+                    "LLM may have used real schema names instead of obfuscated ones"
+                )
+            
+            return error_context
 
     def log_step(self, step_name: str, content: str):
         """Log processing steps in Streamlit"""
