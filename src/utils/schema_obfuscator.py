@@ -146,22 +146,29 @@ commercial_events, property_holders) in your SQL response.
                                       key=lambda x: len(x[0]), reverse=True)
             
             for obfuscated_table, real_table in table_replacements:
-                # Replace table names with word boundaries
+                # Replace table names with word boundaries - ensure uppercase for Snowflake
                 pattern = r'\b' + re.escape(obfuscated_table) + r'\b'
-                real_sql = re.sub(pattern, real_table, real_sql, flags=re.IGNORECASE)
+                real_sql = re.sub(pattern, real_table.upper(), real_sql, flags=re.IGNORECASE)
             
             # Replace column references (table.column format)
             column_replacements = sorted(cls.REVERSE_COLUMN_MAPPING.items(),
                                        key=lambda x: len(x[0]), reverse=True)
             
             for obfuscated_col, real_col in column_replacements:
+                # Create uppercase version for Snowflake compatibility
+                if '.' in real_col:
+                    table_part, col_part = real_col.split('.', 1)
+                    real_col_upper = f"{table_part.upper()}.{col_part.upper()}"
+                else:
+                    real_col_upper = real_col.upper()
+                
                 # Direct replacement for qualified column names
-                real_sql = real_sql.replace(obfuscated_col, real_col)
+                real_sql = real_sql.replace(obfuscated_col, real_col_upper)
                 
                 # Also handle unqualified column names by extracting just the column part
                 if '.' in obfuscated_col:
                     obf_col_name = obfuscated_col.split('.')[1]
-                    real_col_name = real_col.split('.')[1]
+                    real_col_name = real_col.split('.')[1].upper()  # Uppercase column name
                     
                     # Replace unqualified column names with word boundaries
                     pattern = r'\b' + re.escape(obf_col_name) + r'\b'

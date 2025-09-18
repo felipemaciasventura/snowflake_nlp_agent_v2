@@ -14,17 +14,17 @@ from typing import Dict, Any, Optional
 
 import pandas as pd
 from src.utils.config import config
-from src.utils.schema_obfuscator import schema_obfuscator
+import re
 
 
 class SnowflakeNLPAgent:
-    """NLP Agent that translates Spanish questions to SQL for Snowflake.
+    """NLP Agent that translates natural language questions to SQL for Snowflake.
 
     Executes the query.
 
     Main responsibilities:
     - Configure the LLM (Groq, Gemini or Ollama, according to configuration)
-    - Set up an SQL chain (SQLDatabaseChain) with a Spanish prompt
+    - Set up an SQL chain (SQLDatabaseChain) with an English prompt
     - Invoke the chain with the user's question
     - Extract the generated SQL from intermediate_steps
     - Execute the SQL safely in the database and return real rows
@@ -77,17 +77,21 @@ class SnowflakeNLPAgent:
 
         self.db = SQLDatabase.from_uri(db_connection)
 
-        # Create custom prompt for SQLDatabaseChain with obfuscated schema
-        # Secure prompt using obfuscated table/column names to protect real schema
-        obfuscated_schema_info = schema_obfuscator.get_obfuscated_schema_info()
+        # Create custom prompt that explicitly uses real table names
+        # First, let's discover what tables actually exist
+        try:
+            # Get actual table information from the database
+            table_info = self.db.get_table_info()
+            self.log_step("📋 Database Schema Discovered", f"Found {len(table_info.split('CREATE TABLE'))} tables")
+        except Exception as e:
+            table_info = "Unable to retrieve table information"
+            self.log_step("⚠️ Schema Discovery Failed", str(e))
         
-        sql_prompt = f"""You are a Snowflake SQL expert specialized in real estate. Generate ONLY pure SQL query using the secure schema names provided.
+        sql_prompt = f"""You are a Snowflake SQL expert. Generate ONLY pure SQL query using the ACTUAL table names from the database.
 
-IMPORTANT SECURITY NOTE: Use ONLY the secure table/column names shown below. Never use real database names.
+IMPORTANT: Use ONLY the real table names that exist in the database. Never use fictional or obfuscated names.
 
-{obfuscated_schema_info}
-
-📋 ADDITIONAL CONTEXT FROM DATABASE:
+📋 ACTUAL DATABASE SCHEMA:
 {{table_info}}
 
 Question: {{input}}
@@ -96,36 +100,30 @@ Question: {{input}}
 1. NEVER use ``` or backticks in your response
 2. NEVER use markdown format or code blocks  
 3. RESPOND ONLY WITH PURE SQL - NOTHING ELSE
-4. USE ONLY the secure table names: real_estate_items, geographic_areas, sales_representatives, commercial_events, property_holders
+4. Use ONLY the actual table names shown in the schema above
 5. For count queries: use COUNT(*) without LIMIT
-6. For other queries: add LIMIT 10
+6. For other queries: add LIMIT 20 (increase for complex analytical queries)
 7. For rankings: use RANK() OVER (ORDER BY ...) or ROW_NUMBER() OVER
-8. For monetary values: use monetary_value, final_amount, average_deal_value fields
+8. CRITICAL: For schema references, ALWAYS use CURRENT_SCHEMA() - NEVER use literal schema names
+9. For database info queries, use CURRENT_DATABASE() function
+10. For complex analytical queries: use simpler approaches if possible to avoid timeouts
+11. For window functions: consider performance impact and add appropriate LIMIT
 
-📝 SECURE QUERY EXAMPLES:
-Question: most expensive properties by city
-Answer: SELECT ga.city_name, rei.item_id, rei.monetary_value, RANK() OVER (PARTITION BY ga.city_name ORDER BY rei.monetary_value DESC) AS rank FROM real_estate_items rei JOIN geographic_areas ga ON rei.area_ref = ga.area_id WHERE rei.monetary_value > 500000 ORDER BY ga.city_name, rank LIMIT 10
+📋 SPECIFIC QUERY EXAMPLES:
+- "show me all tables" → SHOW TABLES
+- "what tables are there" → SHOW TABLES  
+- "list all tables" → SHOW TABLES
+- "how many tables" → SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA()
+- "what database am I using" → SELECT CURRENT_DATABASE()
 
-Question: agents with most sales
-Answer: SELECT first_name, last_name, deal_count FROM sales_representatives ORDER BY deal_count DESC LIMIT 10
+🚫 NEVER USE THESE FAKE NAMES:
+- real_estate_items, geographic_areas, sales_representatives, commercial_events, property_holders
+- Any obfuscated or fictional table names
 
-Question: recent transactions
-Answer: SELECT ce.completion_date, ce.final_amount, rei.item_id FROM commercial_events ce JOIN real_estate_items rei ON ce.item_ref = rei.item_id ORDER BY ce.completion_date DESC LIMIT 10
+✅ ALWAYS USE REAL NAMES:
+- Use the actual table names from the schema information provided above
 
-⛔ NEVER DO THIS:
-- Use real table names (properties, locations, agents, transactions, owners)
-- Use ``` SELECT ... ``` or ```sql SELECT ... ```
-- Add explanations before or after SQL
-- Use real column names like property_id, location_id, agent_id
-
-✅ ALWAYS USE SECURE NAMES:
-- real_estate_items instead of properties
-- geographic_areas instead of locations  
-- sales_representatives instead of agents
-- commercial_events instead of transactions
-- property_holders instead of owners
-
-Generate PURE SQL using ONLY the secure schema names."""
+Generate PURE SQL using ONLY the real table names from the schema."""
 
         self.sql_chain = SQLDatabaseChain.from_llm(
             self.llm,
@@ -190,21 +188,70 @@ Generate PURE SQL using ONLY the secure schema names."""
         result = re.sub(r'\s+', ' ', result)
         
         return result
+    
 
+    def _handle_metadata_query(self, user_question: str) -> Dict[str, Any]:
+        """Handle metadata queries directly without LLM processing.
+        
+        Returns None if not a metadata query, or result dict if handled.
+        """
+        user_lower = user_question.lower().strip()
+        
+        # Check for table listing queries
+        table_queries = [
+            "show tables", "show me tables", "show all tables", "show me all tables",
+            "list tables", "list all tables", "what tables", "which tables",
+            "display tables", "get tables", "tables list"
+        ]
+        
+        if any(query in user_lower for query in table_queries):
+            try:
+                self.log_step("🏷️ Metadata Query Detected", "Handling table list directly")
+                
+                # Execute clean query to get table names only
+                clean_sql = "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME"
+                self.log_step("📝 Direct SQL", clean_sql)
+                
+                result = self.db.run(clean_sql)
+                self.log_step("✅ Tables retrieved", f"{len(result) if result else 0} tables found")
+                
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": clean_sql,
+                    "query_type": "metadata",
+                    "direct_handling": True
+                }
+                
+            except Exception as e:
+                self.log_step("❌ Error in direct metadata query", str(e))
+                return {
+                    "success": False,
+                    "error": f"Error retrieving tables: {str(e)}",
+                    "query_type": "metadata"
+                }
+        
+        return None  # Not a metadata query
+    
     def process_query(self, user_question: str) -> Dict[str, Any]:
         """Process user query and return data ready for the UI.
 
-        Secure Flow with Schema Obfuscation:
-        1) Invoke SQL chain to get obfuscated SQL from natural language
-        2) Extract generated obfuscated SQL from LangChain intermediate_steps
-        3) Normalize/remove markdown format if it exists
-        4) Translate obfuscated SQL to real schema names using SchemaObfuscator
-        5) Execute real SQL against Snowflake (via SQLDatabase)
+        Flow:
+        1) Check if it's a metadata query (handle directly)
+        2) Invoke SQL chain to get SQL from natural language
+        3) Extract generated SQL from LangChain intermediate_steps
+        4) Normalize/remove markdown format if it exists
+        5) Execute SQL directly against Snowflake (via SQLDatabase)
         6) Log each step for traceability in Streamlit
         """
         try:
             # Log processing start
             self.log_step("🔍 Processing query", user_question)
+            
+            # Check for metadata queries first (direct handling)
+            metadata_result = self._handle_metadata_query(user_question)
+            if metadata_result is not None:
+                return metadata_result
 
             # Execute SQL chain using invoke method
             result = self.sql_chain.invoke(user_question)
@@ -232,32 +279,20 @@ Generate PURE SQL using ONLY the secure schema names."""
                         f"Structure: {result.get('intermediate_steps', 'N/A')}",
                     )
 
-            # If we have clear SQL, translate and execute it to get real data
+            # If we have clear SQL, execute it directly to get real data
             actual_result = None
             if isinstance(sql_query, str):
                 # Normalize SQL (remove possible backticks/markdown) - Enhanced for CodeLlama
-                cleaned_obfuscated_sql = self.clean_sql_response(sql_query)
+                cleaned_sql = self.clean_sql_response(sql_query)
                 
-                if cleaned_obfuscated_sql and cleaned_obfuscated_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
+                if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                     try:
-                        # Log the obfuscated SQL generated by LLM
-                        self.log_step("🔐 Obfuscated SQL generated", cleaned_obfuscated_sql)
+                        # Log the SQL generated by LLM
+                        self.log_step("📝 SQL generated", cleaned_sql)
                         
-                        # Validate that SQL uses only obfuscated names for security
-                        is_secure, violations = schema_obfuscator.validate_obfuscated_sql(cleaned_obfuscated_sql)
-                        if not is_secure:
-                            self.log_step(
-                                "⚠️ Security violation in SQL", 
-                                f"Real schema names detected: {', '.join(violations)}"
-                            )
-                        
-                        # Translate obfuscated SQL to real schema names
-                        real_sql = schema_obfuscator.translate_to_real_sql(cleaned_obfuscated_sql)
-                        self.log_step("🔄 Translated to real SQL", real_sql)
-                        
-                        # Execute the real SQL against Snowflake
-                        self.log_step("🚀 Executing real SQL", real_sql)
-                        actual_result = self.db.run(real_sql)
+                        # Execute the SQL directly against Snowflake
+                        self.log_step("🚀 Executing SQL", cleaned_sql)
+                        actual_result = self.db.run(cleaned_sql)
                         self.log_step(
                             "✅ Results obtained",
                             f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",  # noqa: E501
@@ -267,7 +302,8 @@ Generate PURE SQL using ONLY the secure schema names."""
                         self.log_step(
                             "⚠️ Error executing SQL", f"Error: {str(e)}"
                         )
-                        actual_result = None
+                        # Return user-friendly error instead of None
+                        return self._handle_sql_error(e, cleaned_sql)
 
             # If we couldn't execute the previous SQL, try extracting data from
             # intermediate_steps
@@ -293,68 +329,126 @@ Generate PURE SQL using ONLY the secure schema names."""
                                 break
                     if actual_result:
                         break
+            
+            # Special handling for SHOW TABLES results
+            if actual_result is None and sql_query and "SHOW TABLES" in sql_query.upper():
+                # Extract data from intermediate_steps for SHOW TABLES
+                if "intermediate_steps" in result and result["intermediate_steps"]:
+                    for step in result["intermediate_steps"]:
+                        if isinstance(step, dict) and "sql_result" in step:
+                            actual_result = step["sql_result"]
+                            self.log_step("📋 SHOW TABLES data extracted", f"Found {len(actual_result) if actual_result else 0} tables")
+                            break
 
-            # Last resort: if the final result is SQL, translate and execute it
+            # Last resort: if the final result is SQL, execute it
             if actual_result is None:
                 final_answer = result.get("result")
                 if isinstance(final_answer, str):
                     # Clean the final response too
-                    cleaned_final_obfuscated = self.clean_sql_response(final_answer)
-                    if cleaned_final_obfuscated and cleaned_final_obfuscated.upper().startswith(
+                    cleaned_final = self.clean_sql_response(final_answer)
+                    if cleaned_final and cleaned_final.upper().startswith(
                         ("SELECT", "SHOW", "DESCRIBE")
                     ):
                         try:
-                            # Translate obfuscated final response to real SQL
-                            real_final_sql = schema_obfuscator.translate_to_real_sql(cleaned_final_obfuscated)
                             self.log_step(
-                                "🚀 Executing translated LLM response", real_final_sql
+                                "🚀 Executing LLM response as SQL", cleaned_final
                             )
-                            actual_result = self.db.run(real_final_sql)
+                            actual_result = self.db.run(cleaned_final)
                         except Exception as e:
                             self.log_step(
                                 "⚠️ Error executing LLM response", f"Error: {str(e)}"
                             )
-                            actual_result = final_answer
+                            # Return user-friendly error for final SQL execution too
+                            return self._handle_sql_error(e, cleaned_final)
                     else:
                         actual_result = final_answer
                 else:
                     actual_result = final_answer
 
-            # Prepare final result with both obfuscated and real SQL for debugging
+            # Prepare final result
             final_sql_query = sql_query if isinstance(sql_query, str) else str(sql_query)
+            
+            # Check if we have actual data or just a SQL query
+            if actual_result is None or (isinstance(actual_result, str) and 
+                any(keyword in actual_result.upper() for keyword in ['SELECT', 'WITH', 'FROM', 'WHERE'])):
+                # We only have a SQL query, not actual results
+                self.log_step("⚠️ No data results", "Query generated but no data obtained")
+                return {
+                    "success": False,
+                    "error": "Query was generated successfully but couldn't retrieve data. This might be due to:"
+                           "\n• Database connection issues"
+                           "\n• Query complexity or timeout"
+                           "\n• Data availability"
+                           "\n• Column or table access permissions",
+                    "sql_query": final_sql_query,
+                    "user_friendly": True
+                }
             
             return {
                 "success": True,
                 "result": actual_result,
                 "sql_query": final_sql_query,
-                "obfuscated_sql": final_sql_query,  # For debugging - shows what LLM generated
-                "real_sql": schema_obfuscator.translate_to_real_sql(final_sql_query) if final_sql_query else None,
                 "intermediate_steps": result.get("intermediate_steps", []),
-                "security_layer": "obfuscated",  # Indicate security layer is active
             }
 
         except Exception as e:
             error_msg = str(e)
             self.log_step("❌ Error in query processing", error_msg)
             
-            # Enhanced error context for schema obfuscation issues
+            # Enhanced error context
             error_context = {
                 "success": False, 
                 "error": error_msg, 
                 "result": None,
-                "security_layer": "obfuscated"
             }
             
-            # Add specific error details if it's a translation issue
-            if "schema" in error_msg.lower() or "translate" in error_msg.lower():
-                error_context["error_type"] = "schema_translation"
-                error_context["suggestion"] = "Check if LLM used correct obfuscated table names"
-                self.log_step(
-                    "⚠️ Schema Translation Error", 
-                    "LLM may have used real schema names instead of obfuscated ones"
-                )
-            
             return error_context
+
+    def _handle_sql_error(self, error: Exception, sql_query: str = None) -> Dict[str, Any]:
+        """Handle SQL execution errors with user-friendly messages.
+        
+        Args:
+            error: The original exception
+            sql_query: The SQL query that caused the error (optional)
+            
+        Returns:
+            User-friendly error response
+        """
+        error_str = str(error)
+        
+        # Common error patterns and user-friendly messages
+        if "does not exist" in error_str or "not authorized" in error_str:
+            # Extract table name from error if possible
+            import re
+            table_match = re.search(r"Object '([^']+)' does not exist", error_str)
+            if table_match:
+                table_name = table_match.group(1).lower()
+                user_message = f"❌ The table '{table_name}' doesn't exist in your database or you don't have permission to access it."
+            else:
+                user_message = "❌ The requested table doesn't exist in your database or you don't have permission to access it."
+        
+        elif "SQL compilation error" in error_str:
+            user_message = "❌ There was an error in the SQL query. The database structure might be different than expected."
+        
+        elif "connection" in error_str.lower():
+            user_message = "❌ Database connection error. Please check your connection settings."
+        
+        elif "timeout" in error_str.lower():
+            user_message = "❌ The query took too long to execute. Try a simpler query or contact your administrator."
+        
+        else:
+            user_message = f"❌ Database error: {error_str[:100]}{'...' if len(error_str) > 100 else ''}"
+        
+        self.log_step("🚨 User-Friendly Error", user_message)
+        
+        return {
+            "success": False,
+            "error": user_message,
+            "technical_error": error_str,
+            "sql_query": sql_query,
+            "query_type": "data",
+            "user_friendly": True
+        }
 
     def log_step(self, step_name: str, content: str):
         """Log processing steps in Streamlit"""

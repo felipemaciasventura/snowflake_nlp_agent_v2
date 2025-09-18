@@ -36,6 +36,7 @@ class Config:
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # For Gemini
         
         # LLM Provider selection (auto-detect or manual)
+        # When "auto": Gemini > Ollama > Groq (Gemini is preferred for best performance)
         self.LLM_PROVIDER = os.getenv("LLM_PROVIDER", "auto")  # auto, groq, gemini, ollama
 
         # App
@@ -58,11 +59,11 @@ class Config:
         elif self.LLM_PROVIDER == "ollama" and self.is_ollama_available():
             return "ollama"
         elif self.LLM_PROVIDER == "auto":
-            # Auto-detect: priority Ollama > Gemini > Groq (local first)
-            if self.is_ollama_available():
-                return "ollama"
-            elif self.GOOGLE_API_KEY:
+            # Auto-detect: priority Gemini > Ollama > Groq (Gemini preferred)
+            if self.GOOGLE_API_KEY:
                 return "gemini"
+            elif self.is_ollama_available():
+                return "ollama"
             elif self.GROQ_API_KEY:
                 return "groq"
         return None

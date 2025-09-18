@@ -1,132 +1,132 @@
 # 🤖 Snowflake NLP Agent v2
 
-Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain con **soporte triple** para Groq/Llama, Google Gemini y Ollama (modelo local) para conversión automática de texto a SQL con detección híbrida de consultas.
+An intelligent web application built with Streamlit that enables natural language (English) queries to Snowflake databases, using LangChain with **triple support** for Groq/Llama, Google Gemini and Ollama (local model) for automatic text-to-SQL conversion with hybrid query detection.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-1.28+-red.svg)
 ![Snowflake](https://img.shields.io/badge/snowflake-supported-blue.svg)
 
-## 🌟 Características Principales
+## 🌟 Key Features
 
-- **💬 Interfaz de Chat Intuitiva**: Conversación natural con tu base de datos
-- **🧠 Procesamiento NLP Híbrido**: Detección inteligente de consultas (BD vs ayuda vs fuera de contexto)
-- **🔄 Soporte Triple de LLM**: Compatible con Groq/Llama, Google Gemini y Ollama (local) con auto-detección
-- **📊 Visualización Inteligente**: Formateo automático de resultados con tablas interactivas
-- **🔒 Conexión Segura**: Integración robusta con Snowflake usando credenciales encriptadas
-- **🎯 Respuestas Educativas**: Guía inteligente para usuarios con ejemplos y redirección amigable
-- **🎨 Interfaz Moderna**: Diseño responsivo con Streamlit y componentes interactivos
+- **💬 Intuitive Chat Interface**: Natural conversation with your database
+- **🧠 Hybrid NLP Processing**: Intelligent query detection (DB vs help vs off-topic)
+- **🔄 Triple LLM Support**: Compatible with Groq/Llama, Google Gemini and Ollama (local) with auto-detection
+- **📊 Smart Visualization**: Automatic result formatting with interactive tables
+- **🔒 Secure Connection**: Robust integration with Snowflake using encrypted credentials
+- **🎯 Educational Responses**: Intelligent guidance for users with examples and friendly redirection
+- **🎨 Modern Interface**: Responsive design with Streamlit and interactive components
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Prerrequisitos
+### Prerequisites
 
 - Python 3.8+
-- Cuenta de Snowflake con credenciales de acceso
-- **API Key de Groq** (opción 1) para modelos Llama
-- **API Key de Google Gemini** (opción 2) para modelos Gemini  
-- **Servidor Ollama** (opción 3) para modelos locales
-- Al menos uno de los tres proveedores LLM configurado
+- Snowflake account with access credentials
+- **Groq API Key** (option 1) for Llama models
+- **Google Gemini API Key** (option 2) for Gemini models  
+- **Ollama Server** (option 3) for local models
+- At least one of the three LLM providers configured
 
-### 1. Instalación
+### 1. Installation
 
 ```bash
-# Clonar el repositorio
-git clone https://github.com/tu-usuario/snowflake_nlp_agent_v2.git
+# Clone repository
+git clone https://github.com/your-user/snowflake_nlp_agent_v2.git
 cd snowflake_nlp_agent_v2
 
-# Crear y activar entorno virtual
+# Create and activate virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
-# Instalar dependencias
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configuración
+### 2. Configuration
 
 ```bash
-# Copiar template de configuración
+# Copy configuration template
 cp .env.example .env
 
-# Editar .env con tus credenciales
+# Edit .env with your credentials
 nano .env
 ```
 
-Configurar las siguientes variables en `.env`:
+Configure the following variables in `.env`:
 
 ```env
-# Credenciales Snowflake
-SNOWFLAKE_ACCOUNT=tu-account-url
-SNOWFLAKE_USER=tu-usuario
-SNOWFLAKE_PASSWORD=tu-password
-SNOWFLAKE_WAREHOUSE=tu-warehouse
-SNOWFLAKE_DATABASE=tu-database
+# Snowflake Credentials
+SNOWFLAKE_ACCOUNT=your-account-url
+SNOWFLAKE_USER=your-user
+SNOWFLAKE_PASSWORD=your-password
+SNOWFLAKE_WAREHOUSE=your-warehouse
+SNOWFLAKE_DATABASE=your-database
 SNOWFLAKE_SCHEMA=PUBLIC
 
-# Proveedores LLM - Configurar al menos uno
-# Groq (opción 1)
-GROQ_API_KEY=tu-groq-api-key
+# LLM Providers - Configure at least one
+# Groq (option 1)
+GROQ_API_KEY=your-groq-api-key
 MODEL_NAME=llama-3.3-70b-versatile
 
-# Google Gemini (opción 2) - RECOMENDADO
-GOOGLE_API_KEY=tu-google-api-key
+# Google Gemini (option 2) - RECOMMENDED
+GOOGLE_API_KEY=your-google-api-key
 GEMINI_MODEL=gemini-1.5-flash
 
-# Ollama (opción 3 - modelo local)
+# Ollama (option 3 - local model)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=codellama:7b-instruct
 
-# Selección de proveedor (auto, groq, gemini, ollama)
+# Provider selection (auto, groq, gemini, ollama)
 LLM_PROVIDER=gemini
 
-# Opcional
+# Optional
 DEBUG=False
 ```
 
-### 3. Ejecutar la Aplicación
+### 3. Run Application
 
 ```bash
-# Activar entorno virtual
+# Activate virtual environment
 source venv/bin/activate
 
-# Ejecutar aplicación
+# Run application
 streamlit run streamlit_app.py
 ```
 
-La aplicación estará disponible en `http://localhost:8501`
+The application will be available at `http://localhost:8501`
 
-## 💻 Ejemplos de Uso
+## 💻 Usage Examples
 
-### 🔍 Consultas de Bases de Datos
-
-```
-🔹 "?¿Cuáles son los 10 pedidos con mayor valor?"
-🔹 "Muéstrame las ventas de este mes"
-🔹 "?¿Cuántos clientes hay en total?"
-🔹 "Lista los productos más vendidos"
-🔹 "?¿Qué base de datos estoy usando?"
-🔹 "Muestra las tablas disponibles"
-🔹 "?¿Cuál es el promedio de ingresos por región?"
-```
-
-### 🎯 Consultas de Ayuda (Respuesta Educativa)
+### 🔍 Database Queries
 
 ```
-🔹 "?¿En qué me puedes ayudar?"
-🔹 "?¿Qué puedes hacer?"
-🔹 "?¿Cómo funciona esta aplicación?"
-🔹 "Muéstrame ejemplos de lo que puedes hacer"
+🔹 "What are the 10 orders with highest value?"
+🔹 "Show me sales for this month"
+🔹 "How many customers are there in total?"
+🔹 "List the best-selling products"
+🔹 "What database am I using?"
+🔹 "Show available tables"
+🔹 "What is the average revenue per region?"
 ```
 
-### 🚫 Consultas Fuera de Contexto (Redirección Amigable)
+### 🎯 Help Queries (Educational Response)
 
 ```
-🔹 "?¿Cómo está el clima?"
-🔹 "Cuéntame un chiste"
-🔹 "?¿Qué películas recomiendas?"
-→ Se redirige amigablemente a funcionalidades de BD
+🔹 "How can you help me?"
+🔹 "What can you do?"
+🔹 "How does this application work?"
+🔹 "Show me examples of what you can do"
+```
+
+### 🚫 Off-Topic Queries (Friendly Redirection)
+
+```
+🔹 "How's the weather?"
+🔹 "Tell me a joke"
+🔹 "What movies do you recommend?"
+→ Friendly redirection to DB functionalities
 ```
 
 ### Resultados Automáticos

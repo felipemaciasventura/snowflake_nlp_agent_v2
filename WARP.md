@@ -62,7 +62,7 @@ source venv/bin/activate && streamlit run streamlit_app.py --server.port 8502
 - `OLLAMA_MODEL`: Ollama model name for local inference
 - `MODEL_NAME`: Groq model name (defaults to llama-3.3-70b-versatile)
 - `GEMINI_MODEL`: Gemini model name (defaults to gemini-1.5-flash)
-- `LLM_PROVIDER`: Provider selection - auto, groq, gemini, ollama (defaults to gemini)
+- `LLM_PROVIDER`: Provider selection - auto, groq, gemini, ollama (defaults to auto, Gemini preferred)
 
 **Optional:**
 - `DEBUG`: Enable debug mode (defaults to False)
@@ -74,30 +74,30 @@ The application intelligently detects and responds to different types of queries
 
 **Database Queries (converted to SQL):**
 ```
-"Muéstrame las ventas de este mes"
-"?¿Cuáles son los 10 clientes con más compras?"
-"Lista todos los productos de la categoría electrónicos"
-"?¿Cuál es el promedio de ingresos por región?"
-"Muestra los pedidos de los últimos 30 días"
+"Show me sales for this month"
+"What are the 10 customers with most purchases?"
+"List all products in the electronics category"
+"What is the average revenue per region?"
+"Show orders from the last 30 days"
 ```
 
 **Help Queries (educational responses):**
 ```
-"?¿En qué me puedes ayudar?"
-"?¿Qué puedes hacer?"
-"?¿Cómo funciona esta aplicación?"
+"How can you help me?"
+"What can you do?"
+"How does this application work?"
 ```
 
 **Off-topic Queries (friendly redirection):**
 ```
-"?¿Cómo está el clima?"
-"Cuéntame un chiste"
-"?¿Qué películas recomiendas?"
+"How's the weather?"
+"Tell me a joke"
+"What movies do you recommend?"
 ```
 
 ### Expected Database Schema
 The application works best with properly structured Snowflake databases that include:
-- Table and column comments in Spanish or English
+- Table and column comments in English
 - Consistent naming conventions
 - Appropriate data types and constraints
 
@@ -129,7 +129,7 @@ snowflake_nlp_agent_v2/
 - **`ErrorHandler`** (`helpers.py`): Robust error handling with context-aware exception management and connection validation.
 
 #### Agent Layer (`src/agent/`)
-- **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain with triple provider support (Groq + Gemini + Ollama) for natural language to SQL conversion. Features custom Spanish prompts optimized for each model, SQLDatabaseChain for query generation, advanced SQL cleaning for CodeLlama markdown format, and comprehensive error handling with step-by-step logging.
+- **`SnowflakeNLPAgent`** (`nlp_agent.py`): Complete LLM integration using LangChain with triple provider support (Groq + Gemini + Ollama) for natural language to SQL conversion. Features custom English prompts optimized for each model, SQLDatabaseChain for query generation, advanced SQL cleaning for CodeLlama markdown format, and comprehensive error handling with step-by-step logging.
 
 #### UI Layer (`streamlit_app.py`)
 - **Main Application** (`streamlit_app.py`): Complete Streamlit web interface with chat functionality, real-time query processing, connection management, and interactive data visualization including chat interface, sidebar configuration, connection status, processing logs panel, and data display with pandas DataFrames.
@@ -155,21 +155,21 @@ snowflake_nlp_agent_v2/
 - **Session State Management**: Streamlit session state for maintaining chat history and connections
 
 ### Development Notes
-- **Language Support**: Application interface and NLP processing optimized for Spanish language
+- **Language Support**: Application interface and NLP processing optimized for English language
 - **Global Instances**: Shared resources managed via singleton pattern (config, snowflake_conn, log_manager)
 - **Connection Pooling**: SQLAlchemy NullPool prevents Snowflake connection pool conflicts
 - **Error Handling**: Dual-layer error management (Python logging + Streamlit UI feedback)
 - **Schema Inspection**: Supports both specific schema queries and cross-schema discovery
-- **LLM Configuration**: Uses Gemini 1.5 Flash (default), Llama 3.3 70B Versatile, or CodeLlama 7B-Instruct with temperature=0.1 for consistent SQL generation
+- **LLM Configuration**: Uses Gemini 1.5 Flash (preferred default), Ollama CodeLlama, or Groq Llama 3.3 70B with temperature=0.1 for consistent SQL generation
 - **Session Persistence**: Chat history and connection state maintained across user interactions
 - **Real-time Logging**: Step-by-step query processing logs displayed in UI for transparency
 
 ### Key Features Implemented
-- **Triple LLM Support**: Groq/Llama 3.3 70B + Google Gemini 1.5 Flash + Ollama CodeLlama 7B with auto-detection and local-first priority
+- **Triple LLM Support**: Google Gemini 1.5 Flash + Ollama CodeLlama 7B + Groq Llama 3.3 70B with auto-detection and Gemini-first priority
 - **Hybrid Query Detection**: Intelligent classification of database vs help vs off-topic queries
 - **Educational Responses**: Comprehensive user guidance with examples and capabilities
-- **Friendly Redirection**: Amigable responses for off-topic queries with gentle redirection
-- **Natural Language Processing**: Complete Spanish-to-SQL conversion with multiple LLM options
+- **Friendly Redirection**: Friendly responses for off-topic queries with gentle redirection
+- **Natural Language Processing**: Complete English-to-SQL conversion with multiple LLM options
 - **Interactive Chat Interface**: Real-time conversation with database using Streamlit chat components
 - **Smart Result Formatting**: Intelligent DataFrame formatting with monetary values and user-friendly column names
 - **Robust SQL Parsing**: Advanced parsing of SQL result strings with Decimal support
@@ -184,16 +184,16 @@ snowflake_nlp_agent_v2/
 ### Recent Updates (v2.3)
 ✅ **Latest Major Improvements**:
 - **Ollama Integration**: Complete support for local models (CodeLlama 7B-Instruct) with privacy-first approach
-- **Triple LLM Provider Support**: Groq/Llama + Google Gemini + Ollama with intelligent auto-detection (Ollama > Gemini > Groq)
+- **Triple LLM Provider Support**: Google Gemini + Ollama + Groq with intelligent auto-detection (Gemini > Ollama > Groq)
 - **Advanced SQL Cleaning**: Robust markdown format handling for CodeLlama responses with multi-pattern recognition
 - **Local Model Optimization**: Specialized prompts and processing pipeline for CodeLlama SQL generation
-- **Provider Priority System**: Local-first architecture prioritizing privacy and cost-effectiveness
+- **Provider Priority System**: Gemini-first architecture prioritizing performance and reliability while maintaining privacy options
 
 ### Recent Updates (v2.2)
 ✅ **Previous Major Improvements**:
 - **Hybrid Query Detection**: Intelligent query classification (database/help/off-topic)
 - **Educational Interface**: Comprehensive help responses with usage examples
-- **Friendly User Experience**: Amigable redirection for off-topic queries
+- **Friendly User Experience**: Friendly redirection for off-topic queries
 - **Dynamic System Display**: Real-time LLM provider and model information
 - **Auto-detection Logic**: Automatic LLM provider selection based on available credentials
 - **Robust Error Handling**: Enhanced DataFrame constructor error management

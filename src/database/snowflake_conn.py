@@ -33,6 +33,9 @@ class SnowflakeConnection:
         self.connection = None
         self.engine = None
         self.is_connected = False
+        self._context_cache = None
+        self._cache_timestamp = None
+        self._cache_ttl = 300  # Cache TTL: 5 minutes
 
     def connect(self) -> bool:
         """Establish connection to Snowflake"""
@@ -112,6 +115,10 @@ class SnowflakeConnection:
             self.is_connected = False
             self.connection = None
             self.engine = None
+            
+            # Clear context cache
+            self._context_cache = None
+            self._cache_timestamp = None
 
         except Exception as e:
             error_handler.handle_exception(e, "Snowflake disconnection")
@@ -198,6 +205,112 @@ class SnowflakeConnection:
     def get_connection_string(self) -> str:
         """Get connection string for SQLAlchemy"""
         return self._build_connection_string()
+    
+    def get_database_context(self) -> Dict[str, Any]:
+        """Get comprehensive database context for NLP agent.
+        
+        Uses caching to avoid repeated metadata queries.
+        Cache TTL: 5 minutes
+        
+        Returns:
+            Dict with current database, schema, table count, and sample tables
+        """
+        if not self.is_connected:
+            return {"error": "Not connected to Snowflake"}
+        
+        # Check cache validity
+        import time
+        current_time = time.time()
+        
+        if (self._context_cache is not None and 
+            self._cache_timestamp is not None and 
+            (current_time - self._cache_timestamp) < self._cache_ttl):
+            
+            log_manager.add_log(
+                "💾 Cache Hit", 
+                "Using cached database context"
+            )
+            return self._context_cache
+        
+        try:
+            cursor = self.connection.cursor()
+            context = {}
+            
+            # Get basic connection info
+            cursor.execute(
+                "SELECT CURRENT_DATABASE(), CURRENT_SCHEMA(), CURRENT_WAREHOUSE()"
+            )
+            result = cursor.fetchone()
+            context["database"] = result[0]
+            context["schema"] = result[1]
+            context["warehouse"] = result[2]
+            
+            # Get table count in current schema
+            cursor.execute(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA()"
+            )
+            context["table_count"] = cursor.fetchone()[0]
+            
+            # Get sample tables (up to 10)
+            cursor.execute(
+                "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() LIMIT 10"
+            )
+            tables = cursor.fetchall()
+            context["sample_tables"] = [{
+                "name": table[0], 
+                "type": table[1]
+            } for table in tables]
+            
+            # Get total schemas in database
+            cursor.execute(
+                "SELECT COUNT(*) FROM INFORMATION_SCHEMA.SCHEMATA"
+            )
+            context["schema_count"] = cursor.fetchone()[0]
+            
+            cursor.close()
+            
+            # Cache the result
+            self._context_cache = context
+            self._cache_timestamp = current_time
+            
+            log_manager.add_log(
+                "📋 Database Context", 
+                f"DB: {context['database']}, Schema: {context['schema']}, Tables: {context['table_count']} (cached)"
+            )
+            
+            return context
+            
+        except Exception as e:
+            error_msg = error_handler.handle_exception(e, "database context retrieval")
+            return {"error": error_msg}
+    
+    def get_metadata_summary(self) -> str:
+        """Get formatted metadata summary for LLM context.
+        
+        Returns:
+            Formatted string with database information for prompt inclusion
+        """
+        context = self.get_database_context()
+        
+        if "error" in context:
+            return f"❌ Database context unavailable: {context['error']}"
+        
+        summary = f"""📋 CURRENT DATABASE CONTEXT:
+• Database: {context['database']}
+• Schema: {context['schema']} 
+• Warehouse: {context['warehouse']}
+• Tables in current schema: {context['table_count']}
+• Total schemas in database: {context['schema_count']}
+
+📊 SAMPLE TABLES AVAILABLE:"""
+        
+        for table in context.get('sample_tables', [])[:5]:
+            summary += f"\n• {table['name']} ({table['type']})"
+        
+        if context['table_count'] > 5:
+            summary += f"\n• ... and {context['table_count'] - 5} more tables"
+        
+        return summary
 
     def _build_connection_string(self) -> str:
         """Build connection string for SQLAlchemy"""

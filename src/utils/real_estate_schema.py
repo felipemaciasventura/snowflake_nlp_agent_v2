@@ -57,12 +57,12 @@ class RealEstateSchema:
     
     # Keywords that indicate different query types
     QUERY_PATTERNS = {
-        'ranking': ['ranking', 'top', 'mejores', 'primeros', 'más caros', 'más baratos', 'mayor', 'menor'],
-        'aggregation': ['promedio', 'suma', 'total', 'count', 'máximo', 'mínimo', 'avg', 'sum', 'max', 'min'],
-        'temporal': ['último', 'últimos', 'reciente', 'recientes', 'mes pasado', 'año pasado', 'este año', 'este mes'],
-        'geographic': ['ciudad', 'ciudades', 'estado', 'condado', 'zona', 'ubicación', 'región'],
-        'property_features': ['dormitorios', 'habitaciones', 'baños', 'metros', 'sqft', 'piscina', 'garaje'],
-        'financial': ['precio', 'precios', 'caro', 'barato', 'comisión', 'hipoteca', 'financiamiento']
+        'ranking': ['ranking', 'top', 'best', 'first', 'most expensive', 'cheapest', 'highest', 'lowest'],
+        'aggregation': ['average', 'sum', 'total', 'count', 'maximum', 'minimum', 'avg', 'sum', 'max', 'min'],
+        'temporal': ['last', 'latest', 'recent', 'recent', 'last month', 'last year', 'this year', 'this month'],
+        'geographic': ['city', 'cities', 'state', 'county', 'zone', 'location', 'region'],
+        'property_features': ['bedrooms', 'rooms', 'bathrooms', 'meters', 'sqft', 'pool', 'garage'],
+        'financial': ['price', 'prices', 'expensive', 'cheap', 'commission', 'mortgage', 'financing']
     }
     
     @classmethod
@@ -72,19 +72,19 @@ class RealEstateSchema:
         relevant_tables = []
         
         # Detect relevant tables based on keywords
-        if any(word in query_lower for word in ['ciudad', 'ubicación', 'zona', 'demográfico', 'población']):
+        if any(word in query_lower for word in ['city', 'location', 'zone', 'demographic', 'population']):
             relevant_tables.append('locations')
             
-        if any(word in query_lower for word in ['agente', 'vendedor', 'comisión', 'agency']):
+        if any(word in query_lower for word in ['agent', 'seller', 'commission', 'agency']):
             relevant_tables.append('agents')
             
-        if any(word in query_lower for word in ['propietario', 'dueño', 'owner', 'inversionista']):
+        if any(word in query_lower for word in ['owner', 'investor']):
             relevant_tables.append('owners')
             
-        if any(word in query_lower for word in ['propiedad', 'casa', 'inmueble', 'dormitorios', 'baños']):
+        if any(word in query_lower for word in ['property', 'house', 'real estate', 'bedrooms', 'bathrooms']):
             relevant_tables.append('properties')
             
-        if any(word in query_lower for word in ['transacción', 'venta', 'compra', 'vendió', 'compró']):
+        if any(word in query_lower for word in ['transaction', 'sale', 'purchase', 'sold', 'bought']):
             relevant_tables.append('transactions')
         
         return relevant_tables if relevant_tables else ['properties']  # Default
