@@ -17,13 +17,13 @@ from src.utils.config import config
 
 
 class SnowflakeNLPAgent:
-    """NLP Agent that translates Spanish questions to SQL for Snowflake.
+    """NLP Agent that translates English questions to SQL for Snowflake.
 
     Executes the query.
 
     Main responsibilities:
     - Configure the LLM (Groq, Gemini or Ollama, according to configuration)
-    - Set up an SQL chain (SQLDatabaseChain) with a Spanish prompt
+    - Set up an SQL chain (SQLDatabaseChain) with a English prompt
     - Invoke the chain with the user's question
     - Extract the generated SQL from intermediate_steps
     - Execute the SQL safely in the database and return real rows
@@ -107,17 +107,25 @@ Question: {input}
 6. For other queries: add LIMIT 10
 7. For rankings: use RANK() OVER (ORDER BY ...)
 8. For prices: use column names like sale_price, list_price, price
+9. For database/schema info: use CURRENT_DATABASE() and CURRENT_SCHEMA() functions
 
-📝 SPECIFIC REAL ESTATE EXAMPLES:
+📝 SPECIFIC EXAMPLES:
 Question: most expensive properties by city
 Answer: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
 
 Question: agents with most sales
 Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10
 
+Question: what database are we using
+Answer: SELECT CURRENT_DATABASE() AS database_name
+
+Question: show me all tables
+Answer: SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME
+
 ⛔ NEVER DO THIS:
 - ``` SELECT ... ```
 - ```sql SELECT ... ```
+- SELECT 'Snowflake' AS database_name (hardcoded values)
 - Explanations before or after SQL
 
 ✅ PURE SQL ONLY:"""
@@ -185,6 +193,84 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
         result = re.sub(r'\s+', ' ', result)
         
         return result
+    
+    def _handle_metadata_query(self, user_question: str) -> Dict[str, Any]:
+        """Handle metadata queries directly without LLM processing.
+        
+        Returns None if not a metadata query, or result dict if handled.
+        """
+        user_lower = user_question.lower().strip()
+        
+        # Check for table listing queries
+        table_queries = [
+            "show tables", "show me tables", "show all tables", "show me all tables",
+            "list tables", "list all tables", "what tables", "which tables",
+            "tables available", "available tables", "table names", "all tables"
+        ]
+        
+        # Check for database info queries
+        database_queries = [
+            "what database", "which database", "current database", "database name",
+            "what db", "which db", "current db", "db name", "database we are using",
+            "database are we using", "what database we are use", "what database we use",
+            "database we use now", "what database are we using now"
+        ]
+        
+        # Check for schema info queries
+        schema_queries = [
+            "what schema", "which schema", "current schema", "schema name",
+            "what schema are we using", "schema we are using"
+        ]
+        
+        if any(query in user_lower for query in table_queries):
+            try:
+                # Use cleaner metadata query for tables
+                sql = "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME"
+                self.log_step("📋 Metadata Query", "Listing all tables")
+                result = self.db.run(sql)
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": sql,
+                    "query_type": "metadata"
+                }
+            except Exception as e:
+                self.log_step("⚠️ Metadata Error", str(e))
+                return None
+        
+        elif any(query in user_lower for query in database_queries):
+            try:
+                # Get current database name
+                sql = "SELECT CURRENT_DATABASE() AS database_name"
+                self.log_step("🗂️ Database Query", "Getting current database name")
+                result = self.db.run(sql)
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": sql,
+                    "query_type": "metadata"
+                }
+            except Exception as e:
+                self.log_step("⚠️ Database Query Error", str(e))
+                return None
+        
+        elif any(query in user_lower for query in schema_queries):
+            try:
+                # Get current schema name
+                sql = "SELECT CURRENT_SCHEMA() AS schema_name"
+                self.log_step("📋 Schema Query", "Getting current schema name")
+                result = self.db.run(sql)
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": sql,
+                    "query_type": "metadata"
+                }
+            except Exception as e:
+                self.log_step("⚠️ Schema Query Error", str(e))
+                return None
+        
+        return None  # Not a metadata query
 
     def process_query(self, user_question: str) -> Dict[str, Any]:
         """Process user query and return data ready for the UI.
@@ -200,6 +286,11 @@ Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY tra
         try:
             # Log processing start
             self.log_step("🔍 Processing query", user_question)
+            
+            # Check for metadata queries first (direct handling)
+            metadata_result = self._handle_metadata_query(user_question)
+            if metadata_result is not None:
+                return metadata_result
 
             # Execute SQL chain using invoke method
             result = self.sql_chain.invoke(user_question)

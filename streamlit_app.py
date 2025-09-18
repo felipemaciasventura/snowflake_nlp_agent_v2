@@ -663,7 +663,7 @@ def main():
     """
     st.title("🤖 NLP Agent for Snowflake Queries")
     st.markdown(
-        "Ask questions in Spanish and get answers from your Snowflake database"
+        "Ask questions in English and get answers from your Snowflake database"
     )
 
     # Initialize state
@@ -706,7 +706,7 @@ def main():
         display_logs_panel()
 
     # User input (outside column layout)
-    if prompt := st.chat_input("Write your query in Spanish..."):
+    if prompt := st.chat_input("Write your query in English..."):
         process_user_input(prompt)
 
 
