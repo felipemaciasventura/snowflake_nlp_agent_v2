@@ -292,6 +292,10 @@ def extract_column_names_from_sql(sql_query):
     """Extract meaningful column names from SQL query using aliases or column names."""
     import re
     
+    # If it's already a list of column names, return it directly
+    if isinstance(sql_query, list):
+        return sql_query
+    
     if not sql_query or not isinstance(sql_query, str):
         return None
     
@@ -368,7 +372,7 @@ def extract_column_names_from_sql(sql_query):
         
         return column_names if column_names else None
         
-    except Exception as e:
+    except Exception:
         # If parsing fails, return None to use fallback
         return None
 
@@ -679,9 +683,120 @@ def _render_successful_result(result, prompt):
         return
 
     try:
+        
+        # Try to extract real SQL from the structure
+        actual_sql = "N/A"
+        raw_sql_str = str(raw_sql)
+        
+        # Look for SQL query in the structure - try multiple patterns
+        import re
+        
+        # Pattern 1: Try to find SQL from LangChain result  
+        # Also check the result["result"] which might contain the Answer
+        result_answer = result.get("result", "")
+        
+        sql_patterns = [
+            r"^(SELECT.*?)$",                            # Full SELECT statement (multiline)
+            r"^(SELECT[^\n\r;]+)",                       # Raw SELECT statement at start  
+            r"Answer[:\s]*(SELECT[^\n\r;]+)",           # Answer: SELECT...
+            r"SQLQuery[:\s]*([^'\"]*SELECT[^'\n\r]+)",  # SQLQuery: SELECT...
+            r"'sql_cmd'[:\s]*['\"]([^'\"]+)['\"]?",      # 'sql_cmd': 'SELECT...'
+            r"'query'[:\s]*['\"]([^'\"]+)['\"]?",        # 'query': 'SELECT...'
+        ]
+        
+        # The real SQL is in result["result"] which is the Answer from LangChain
+        
+        # Plan B: If SQL extraction fails, use contextual inference
+        contextual_names = None
+        prompt_lower = prompt.lower()
+        
+        if isinstance(result['result'], str) and result['result'].startswith('['):
+            # Parse the data to see structure
+            try:
+                import ast
+                import re
+                
+                # Clean the result string to handle Decimal objects
+                cleaned_result = result['result']
+                # Replace Decimal('123.456') with just 123.456
+                decimal_pattern = r"Decimal\('([^']+)'\)"
+                cleaned_result = re.sub(decimal_pattern, r'\1', cleaned_result)
+                
+                sample_data = ast.literal_eval(cleaned_result)
+                if sample_data and isinstance(sample_data[0], tuple):
+                    num_cols = len(sample_data[0])
+                    
+                    # Pattern 1: Most expensive properties by city (3 cols)
+                    if ('most expensive properties' in prompt_lower and 'city' in prompt_lower):
+                        if num_cols == 3:
+                            contextual_names = ['City Name', 'Property Id', 'Property Price']
+                        elif num_cols == 2:
+                            contextual_names = ['City Name', 'Property Price']
+                    
+                    # Pattern 2: Which city has most expensive houses (2 cols: city, avg_price)
+                    elif ('which city' in prompt_lower and 'expensive' in prompt_lower and 
+                          any(word in prompt_lower for word in ['house', 'houses', 'home', 'homes', 'property', 'properties'])):
+                        if num_cols == 2:
+                            contextual_names = ['City Name', 'Average Price']
+                        elif num_cols == 1:
+                            contextual_names = ['City Name']
+                    
+                    # Pattern 3: City-based queries with averages/totals (2 cols)
+                    elif ('city' in prompt_lower and any(word in prompt_lower for word in ['average', 'avg', 'total', 'sum'])):
+                        if num_cols == 2:
+                            # Determine second column based on context
+                            if 'price' in prompt_lower:
+                                contextual_names = ['City Name', 'Average Price']
+                            elif 'income' in prompt_lower:
+                                contextual_names = ['City Name', 'Average Income']
+                            elif 'population' in prompt_lower:
+                                contextual_names = ['City Name', 'Population']
+                            else:
+                                contextual_names = ['City Name', 'Value']
+                    
+                    # Pattern 4: Agent-related queries
+                    elif ('agent' in prompt_lower and any(word in prompt_lower for word in ['most', 'top', 'best'])):
+                        if num_cols == 3:
+                            contextual_names = ['Agent First Name', 'Agent Last Name', 'Total Sales']
+                        elif num_cols == 2:
+                            contextual_names = ['Agent Name', 'Sales Count']
+                    
+                    # Pattern 5: Property type queries  
+                    elif ('property type' in prompt_lower or 'type of property' in prompt_lower):
+                        if num_cols == 2:
+                            contextual_names = ['Property Type', 'Count']
+                        elif num_cols == 3:
+                            contextual_names = ['Property Type', 'Average Price', 'Count']
+                    
+            except Exception:
+                pass
+        
+        
+        # Try result answer first since that's what actually gets executed
+        search_texts = []
+        if isinstance(result_answer, str) and 'SELECT' in result_answer.upper():
+            search_texts.append(result_answer)
+        search_texts.append(raw_sql_str)  # Fallback to raw sql
+        
+        for search_text in search_texts:
+            for pattern in sql_patterns:
+                match = re.search(pattern, search_text, re.IGNORECASE | re.MULTILINE)
+                if match:
+                    potential_sql = match.group(1).strip()
+                    if 'SELECT' in potential_sql.upper() and len(potential_sql) > 20:
+                        actual_sql = potential_sql
+                        break
+            if actual_sql != "N/A":
+                break
+            
+        
+        # Use contextual names if SQL extraction failed
+        sql_for_df = actual_sql if actual_sql != "N/A" else contextual_names
+        
         df = format_sql_result_to_dataframe(
-            result["result"], result.get("sql_query", ""), prompt
+            result["result"], sql_for_df, prompt
         )
+        
         st.dataframe(df, width='stretch')
         num_rows = len(df)
         st.caption(
