@@ -370,7 +370,6 @@ def extract_column_names_from_sql(sql_query):
         
     except Exception as e:
         # If parsing fails, return None to use fallback
-        print(f"Error extracting column names: {e}")
         return None
 
 
@@ -398,11 +397,11 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
         if not isinstance(data, list) or not data:
             return pd.DataFrame({"Result": ["No data"]})
 
-        # Caso 3: Para la consulta específica de pedidos con mayor valor
+        # Caso 3: Para la consulta específica de pedidos con mayor valor (más específico)
         if (
             "mayor valor" in user_question.lower()
             or "totalprice" in sql_query.lower()
-            or "ORDER BY" in sql_query.upper()
+            or ("ORDER BY" in sql_query.upper() and "pedido" in user_question.lower())
         ):
 
             # Detectado como consulta de pedidos con valores
@@ -426,8 +425,9 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                 # DataFrame creado con formato personalizado
                 return df_result
 
-        # Caso 4: Para consultas inmobiliarias específicas
-        if any(term in user_question.lower() for term in ["precio", "precios", "venta", "ventas", "propiedades", "agente"]):
+        # Caso 4: Para consultas inmobiliarias específicas (solo si no hay aliases en el SQL)
+        if (any(term in user_question.lower() for term in ["precio", "precios", "venta", "ventas", "propiedades", "agente"]) 
+            and " AS " not in sql_query.upper()):
             if len(data) > 0 and len(data[0]) >= 2:
                 # Detectar si hay precios o valores monetarios
                 if any(col_name in str(data[0]).lower() for col_name in ["price", "precio", "sale", "venta", "commission", "comision"]):
