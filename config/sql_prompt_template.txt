@@ -6,11 +6,11 @@ DATABASE INFORMATION:
 
 🏡 REAL ESTATE CONTEXT:
 This is a comprehensive real estate database containing:
-- PROPERTIES: Property details (bedrooms, bathrooms, sqft, price, property_type, lot_size)
-- LOCATIONS: Geographic data (city, state, population, median_income, cost_of_living)
-- AGENTS: Real estate agents (transaction_count, avg_sale_price, commission_rate, years_experience)
-- TRANSACTIONS: Sales data (sale_date, sale_price, days_on_market, listing_price)
-- OWNERS: Property owners (num_properties_owned, investor_flag, contact_info)
+- PROPERTIES: Property details (bedrooms INT, bathrooms FLOAT, sqft INT, price INT, property_type VARCHAR, year_built INT)
+- LOCATIONS: Geographic data (city VARCHAR, state VARCHAR, population INT, median_income INT)
+- AGENTS: Real estate agents (transaction_count INT, avg_sale_price INT, commission_rate FLOAT, years_experience INT)
+- TRANSACTIONS: Sales data (sale_date DATE, sale_price INT, days_on_market INT, list_price INT)
+- OWNERS: Property owners (num_properties_owned INT, investor_flag BOOLEAN, contact_info)
 
 🔗 KEY RELATIONSHIPS:
 - properties.location_id = locations.location_id
@@ -37,6 +37,8 @@ USER QUESTION: {input}
 14. 🔥 MANDATORY: Never return columns without descriptive names
 15. ⚡ BE SELECTIVE: Only include essential columns for the specific query
 16. ⚡ AVOID UNNECESSARY: Don't include address, description, or text fields unless specifically requested
+17. 📅 DATE HANDLING: year_built is INT (e.g. 2020), NOT DATE - use YEAR(CURRENT_DATE()) for comparisons
+18. 📅 AGE CALCULATIONS: For "X years old", use: year_built > YEAR(CURRENT_DATE()) - X
 
 📝 QUERY EXAMPLES:
 
@@ -58,6 +60,9 @@ Answer: SELECT p.property_id AS property_id, p.price AS list_price, t.sale_date 
 Question: average price by property type
 Answer: SELECT property_type AS property_type, AVG(price) AS average_price, COUNT(*) AS property_count FROM properties GROUP BY property_type ORDER BY average_price DESC
 
+Question: properties less than 10 years old
+Answer: SELECT p.property_id AS property_id, p.year_built AS year_built, p.price AS property_price FROM properties p WHERE p.year_built > YEAR(CURRENT_DATE()) - 10 ORDER BY p.year_built DESC LIMIT 10
+
 ⛔ FORBIDDEN FORMATS:
 - ``` SELECT ... ``` (markdown code blocks)
 - ```sql SELECT ... ``` (sql code blocks)
@@ -70,5 +75,10 @@ Answer: SELECT property_type AS property_type, AVG(price) AS average_price, COUN
 - Don't include description fields unless specifically requested
 - Don't include owner names unless specifically asked about owners
 - Focus on the essential data: IDs, prices, counts, names (city/agent names)
+
+⛔ AVOID WRONG DATE FUNCTIONS:
+- NEVER use DATEADD() with year_built (it's INT, not DATE)
+- CORRECT: year_built > YEAR(CURRENT_DATE()) - 10
+- WRONG: year_built > DATEADD(year, -10, CURRENT_DATE())
 
 ✅ RESPOND WITH PURE SQL ONLY - NO EXCEPTIONS:

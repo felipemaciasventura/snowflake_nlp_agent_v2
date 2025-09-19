@@ -621,9 +621,9 @@ def _render_successful_result(result, prompt):
         return
 
     try:
-        
         # Try to extract real SQL from the structure
         actual_sql = "N/A"
+        raw_sql = result.get('sql_query', 'NO SQL')
         raw_sql_str = str(raw_sql)
         
         # Look for SQL query in the structure - try multiple patterns
