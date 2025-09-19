@@ -401,98 +401,41 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
         if not isinstance(data, list) or not data:
             return pd.DataFrame({"Result": ["No data"]})
 
-        # Caso 3: Para la consulta específica de pedidos con mayor valor (más específico)
-        if (
-            "mayor valor" in user_question.lower()
-            or "totalprice" in sql_query.lower()
-            or ("ORDER BY" in sql_query.upper() and "pedido" in user_question.lower())
-        ):
 
-            # Detectado como consulta de pedidos con valores
-            if len(data[0]) >= 2:
-                formatted_rows = []
-                for row in data:
-                    id_pedido = row[0]
-                    valor = row[1]
-
-                    # Formatear el valor como moneda
-                    if isinstance(valor, (int, float, Decimal)):
-                        valor_formateado = f"${float(valor):,.2f}"
-                    else:
-                        valor_formateado = str(valor)
-
-                    formatted_rows.append(
-                        {"ID Pedido": id_pedido, "Valor Total": valor_formateado}
-                    )
-
-                df_result = pd.DataFrame(formatted_rows)
-                # DataFrame creado con formato personalizado
-                return df_result
-
-        # Caso 4: Para consultas inmobiliarias específicas (solo si no hay aliases en el SQL)
-        if (any(term in user_question.lower() for term in ["precio", "precios", "venta", "ventas", "propiedades", "agente"]) 
-            and " AS " not in sql_query.upper()):
-            if len(data) > 0 and len(data[0]) >= 2:
-                # Detectar si hay precios o valores monetarios
-                if any(col_name in str(data[0]).lower() for col_name in ["price", "precio", "sale", "venta", "commission", "comision"]):
-                    formatted_rows = []
-                    for row in data:
-                        formatted_row = {}
-                        for i, value in enumerate(row):
-                            col_name = f"Columna_{i+1}"
-                            if i == 0 and any(term in user_question.lower() for term in ["ciudad", "city"]):
-                                col_name = "Ciudad"
-                            elif "price" in str(value).lower() or (isinstance(value, (int, float)) and value > 10000):
-                                col_name = "Precio" if "precio" in user_question.lower() else "Valor"
-                                value = f"${float(value):,.2f}" if isinstance(value, (int, float, Decimal)) else str(value)
-                            elif "id" in str(value).lower() or (i == 0 and isinstance(value, int) and value < 10000):
-                                col_name = "ID"
-                            formatted_row[col_name] = value
-                        formatted_rows.append(formatted_row)
-                    return pd.DataFrame(formatted_rows)
         
-        # Caso 5: Para consultas COUNT (cantidad/cuántas)
-        if (
-            "COUNT(*)" in sql_query.upper()
-            or "count(*)" in user_question.lower()
-            or "cuántas" in user_question.lower()
-            or "cuántos" in user_question.lower()
-            or "cantidad" in user_question.lower()
-        ):
+        # Case 5: COUNT queries (English only)
+        if "COUNT(*)" in sql_query.upper():
             if len(data) > 0 and len(data[0]) == 1:
                 count_value = data[0][0]
-                # Determinar qué se está contando basado en la pregunta
-                if "tabla" in user_question.lower():
+                # Determine what's being counted based on the query context
+                if "table" in user_question.lower():
                     return pd.DataFrame(
                         [
                             {
-                                "Descripción": "Total de tablas en la base de datos",
-                                "Cantidad": f"{count_value:,}",
+                                "Description": "Total database tables",
+                                "Count": f"{count_value:,}",
                             }
                         ]
                     )
-                elif "cliente" in user_question.lower():
+                elif "customer" in user_question.lower() or "client" in user_question.lower():
                     return pd.DataFrame(
                         [
                             {
-                                "Descripción": "Total de clientes",
-                                "Cantidad": f"{count_value:,}",
+                                "Description": "Total customers",
+                                "Count": f"{count_value:,}",
                             }
                         ]
                     )
-                elif (
-                    "pedido" in user_question.lower()
-                    or "orden" in user_question.lower()
-                ):
+                elif "order" in user_question.lower():
                     return pd.DataFrame(
                         [
                             {
-                                "Descripción": "Total de pedidos",
-                                "Cantidad": f"{count_value:,}",
+                                "Description": "Total orders",
+                                "Count": f"{count_value:,}",
                             }
                         ]
                     )
-                elif "venta" in user_question.lower():
+                elif "sale" in user_question.lower():
                     return pd.DataFrame(
                         [
                             {
@@ -531,16 +474,12 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                     )
                 return pd.DataFrame(table_data)
 
-        # Case 8: For region-based queries (average, sum, etc.)
-        if (
-            "región" in user_question.lower()
-            or "region" in user_question.lower()
-            or "regiones" in user_question.lower()
-        ) and len(data) > 0 and len(data[0]) == 2:
+        # Case 8: For region-based queries (English only)
+        if "region" in user_question.lower() and len(data) > 0 and len(data[0]) == 2:
             # Detect if it's average, sum, total, etc.
-            if "promedio" in user_question.lower() or "avg" in sql_query.lower():
+            if "average" in user_question.lower() or "avg" in sql_query.lower():
                 metric_name = "Average Revenue"
-            elif "suma" in user_question.lower() or "total" in user_question.lower():
+            elif "sum" in user_question.lower() or "total" in user_question.lower():
                 metric_name = "Total Revenue"
             elif "count" in sql_query.lower():
                 metric_name = "Count"
