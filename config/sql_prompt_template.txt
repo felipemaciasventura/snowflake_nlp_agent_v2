@@ -33,26 +33,30 @@ USER QUESTION: {input}
 10. Always use proper table aliases (p, l, a, t, o) for readability
 11. For date queries: use DATE functions and proper date formatting
 12. For text search: use UPPER() or ILIKE for case-insensitive matching
+13. 🔥 MANDATORY: Always use meaningful column aliases with AS keyword
+14. 🔥 MANDATORY: Never return columns without descriptive names
+15. ⚡ BE SELECTIVE: Only include essential columns for the specific query
+16. ⚡ AVOID UNNECESSARY: Don't include address, description, or text fields unless specifically requested
 
 📝 QUERY EXAMPLES:
 
 Question: most expensive properties by city
-Answer: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS price_rank FROM properties p JOIN locations l ON p.location_id = l.location_id ORDER BY l.city, price_rank LIMIT 10
+Answer: SELECT l.city AS city_name, p.property_id AS property_id, p.price AS property_price FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price IS NOT NULL ORDER BY p.price DESC LIMIT 10
 
 Question: agents with most sales this year
-Answer: SELECT a.first_name, a.last_name, a.transaction_count, a.avg_sale_price FROM agents a ORDER BY a.transaction_count DESC LIMIT 10
+Answer: SELECT a.first_name AS agent_first_name, a.last_name AS agent_last_name, a.transaction_count AS total_sales, a.avg_sale_price AS average_sale_price FROM agents a ORDER BY a.transaction_count DESC LIMIT 10
 
 Question: what database are we using
 Answer: SELECT CURRENT_DATABASE() AS database_name
 
 Question: show me all tables
-Answer: SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME
+Answer: SELECT TABLE_NAME AS table_name, TABLE_TYPE AS table_type FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME
 
 Question: properties sold in the last 30 days
-Answer: SELECT p.property_id, p.price, t.sale_date, t.sale_price FROM properties p JOIN transactions t ON p.property_id = t.property_id WHERE t.sale_date >= DATEADD(day, -30, CURRENT_DATE()) ORDER BY t.sale_date DESC LIMIT 10
+Answer: SELECT p.property_id AS property_id, p.price AS list_price, t.sale_date AS sale_date, t.sale_price AS final_sale_price FROM properties p JOIN transactions t ON p.property_id = t.property_id WHERE t.sale_date >= DATEADD(day, -30, CURRENT_DATE()) ORDER BY t.sale_date DESC LIMIT 10
 
 Question: average price by property type
-Answer: SELECT property_type, AVG(price) as avg_price, COUNT(*) as property_count FROM properties GROUP BY property_type ORDER BY avg_price DESC
+Answer: SELECT property_type AS property_type, AVG(price) AS average_price, COUNT(*) AS property_count FROM properties GROUP BY property_type ORDER BY average_price DESC
 
 ⛔ FORBIDDEN FORMATS:
 - ``` SELECT ... ``` (markdown code blocks)
@@ -60,5 +64,11 @@ Answer: SELECT property_type, AVG(price) as avg_price, COUNT(*) as property_coun
 - SELECT 'Hardcoded Value' AS column (use functions instead)
 - Any explanations, comments, or additional text
 - Multiple queries in one response
+
+⛔ AVOID UNNECESSARY COLUMNS:
+- Don't include p.address unless specifically asked for addresses
+- Don't include description fields unless specifically requested
+- Don't include owner names unless specifically asked about owners
+- Focus on the essential data: IDs, prices, counts, names (city/agent names)
 
 ✅ RESPOND WITH PURE SQL ONLY - NO EXCEPTIONS:

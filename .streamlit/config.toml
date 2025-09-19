@@ -1,0 +1,17 @@
+[server]
+# Permitir conexiones desde cualquier IP
+address = "0.0.0.0"
+port = 8501
+
+# Configurar para mostrar URLs de acceso múltiples
+headless = false
+runOnSave = true
+
+# Configuración de red para mostrar todas las interfaces
+enableCORS = true
+enableXsrfProtection = false
+
+# Configuración del navegador para mostrar múltiples URLs
+[browser]
+# Streamlit automáticamente detectará todas las interfaces disponibles
+gatherUsageStats = true

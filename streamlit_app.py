@@ -288,6 +288,92 @@ def parse_sql_result_string(result_string):
     return result_string
 
 
+def extract_column_names_from_sql(sql_query):
+    """Extract meaningful column names from SQL query using aliases or column names."""
+    import re
+    
+    if not sql_query or not isinstance(sql_query, str):
+        return None
+    
+    # Clean the SQL query
+    sql_clean = sql_query.strip().upper()
+    
+    try:
+        # Look for SELECT statement
+        select_match = re.search(r'SELECT\s+(.*?)\s+FROM', sql_clean, re.DOTALL | re.IGNORECASE)
+        if not select_match:
+            return None
+        
+        select_part = select_match.group(1).strip()
+        
+        # Handle SELECT * case
+        if select_part.strip() == '*':
+            return None
+        
+        # Split by comma to get individual column expressions
+        column_expressions = [expr.strip() for expr in select_part.split(',')]
+        
+        column_names = []
+        
+        for expr in column_expressions:
+            # Case 1: Look for AS alias (e.g., "column_name AS alias")
+            as_match = re.search(r'\bAS\s+([\w_]+)$', expr, re.IGNORECASE)
+            if as_match:
+                alias = as_match.group(1).lower()
+                # Convert to more readable format
+                readable_name = alias.replace('_', ' ').title()
+                column_names.append(readable_name)
+                continue
+            
+            # Case 2: Look for function calls with aliases (e.g., "COUNT(*) AS count")
+            func_as_match = re.search(r'\w+\([^)]*\)\s+AS\s+([\w_]+)', expr, re.IGNORECASE)
+            if func_as_match:
+                alias = func_as_match.group(1).lower()
+                readable_name = alias.replace('_', ' ').title()
+                column_names.append(readable_name)
+                continue
+            
+            # Case 3: Simple column reference (e.g., "p.property_id", "city")
+            simple_col_match = re.search(r'(?:[\w]+\.)?([\w_]+)$', expr)
+            if simple_col_match:
+                col_name = simple_col_match.group(1).lower()
+                readable_name = col_name.replace('_', ' ').title()
+                column_names.append(readable_name)
+                continue
+            
+            # Case 4: Function calls without aliases (e.g., "COUNT(*)", "AVG(price)")
+            func_match = re.search(r'(\w+)\(', expr)
+            if func_match:
+                func_name = func_match.group(1).upper()
+                if func_name == 'COUNT':
+                    column_names.append('Count')
+                elif func_name == 'AVG':
+                    column_names.append('Average')
+                elif func_name == 'SUM':
+                    column_names.append('Total')
+                elif func_name == 'MAX':
+                    column_names.append('Maximum')
+                elif func_name == 'MIN':
+                    column_names.append('Minimum')
+                elif func_name == 'CURRENT_DATABASE':
+                    column_names.append('Database')
+                elif func_name == 'CURRENT_SCHEMA':
+                    column_names.append('Schema')
+                else:
+                    column_names.append(func_name.title())
+                continue
+            
+            # Fallback: use a generic name
+            column_names.append(f'Column {len(column_names) + 1}')
+        
+        return column_names if column_names else None
+        
+    except Exception as e:
+        # If parsing fails, return None to use fallback
+        print(f"Error extracting column names: {e}")
+        return None
+
+
 def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
     """Convert SQL results into a well-formatted DataFrame"""
     from decimal import Decimal
@@ -475,18 +561,35 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             
             return pd.DataFrame(formatted_rows)
 
-        # Case 9: Default - create DataFrame more robustly
+        # Case 9: Default - create DataFrame with intelligent column names
         try:
+            # First, try to extract column names from SQL query
+            extracted_column_names = extract_column_names_from_sql(sql_query)
+            
+            if extracted_column_names and len(data) > 0 and isinstance(data[0], (tuple, list)):
+                # Use extracted column names if they match the data structure
+                num_cols = len(data[0]) if data[0] else 1
+                if len(extracted_column_names) == num_cols:
+                    df = pd.DataFrame(data, columns=extracted_column_names)
+                    return df
+            
             # Try to create DataFrame directly
             df = pd.DataFrame(data)
             return df
         except Exception:
-            # If it fails, try with generic column names
+            # If it fails, try with intelligent column names
             try:
                 if len(data) > 0 and isinstance(data[0], (tuple, list)):
-                    # Create generic column names
+                    # Try to extract column names from SQL first
+                    extracted_column_names = extract_column_names_from_sql(sql_query)
                     num_cols = len(data[0]) if data[0] else 1
-                    column_names = [f"Column_{i+1}" for i in range(num_cols)]
+                    
+                    if extracted_column_names and len(extracted_column_names) == num_cols:
+                        column_names = extracted_column_names
+                    else:
+                        # Create more descriptive generic column names
+                        column_names = [f"Column {i+1}" for i in range(num_cols)]
+                    
                     df = pd.DataFrame(data, columns=column_names)
                     return df
                 else:
@@ -498,14 +601,21 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                 return pd.DataFrame({"Result": [str(data)]})
 
     except Exception:
-        # Formatting error, use robust handling
+        # Formatting error, use robust handling with intelligent column names
         try:
             # Try to create basic DataFrame
             if isinstance(data, list) and len(data) > 0:
                 if isinstance(data[0], (tuple, list)):
-                    # List of tuples/lists
+                    # List of tuples/lists - try to extract column names from SQL
+                    extracted_column_names = extract_column_names_from_sql(sql_query)
                     num_cols = len(data[0]) if data[0] else 1
-                    column_names = [f"Column_{i+1}" for i in range(num_cols)]
+                    
+                    if extracted_column_names and len(extracted_column_names) == num_cols:
+                        column_names = extracted_column_names
+                    else:
+                        # Use more readable generic names
+                        column_names = [f"Column {i+1}" for i in range(num_cols)]
+                    
                     return pd.DataFrame(data, columns=column_names)
                 else:
                     # Simple list
