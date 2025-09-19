@@ -1,6 +1,6 @@
 # 🤖 Snowflake NLP Agent v2
 
-Una aplicación web inteligente construida con Streamlit que permite realizar consultas en lenguaje natural (español) a bases de datos Snowflake, utilizando LangChain con **soporte triple** para Groq/Llama, Google Gemini y Ollama (modelo local) para conversión automática de texto a SQL con detección híbrida de consultas.
+An intelligent web application built with Streamlit that enables natural language queries (English) to Snowflake databases, using LangChain with **triple support** for Groq/Llama, Google Gemini, and Ollama (local models) for automatic text-to-SQL conversion with hybrid query detection.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)

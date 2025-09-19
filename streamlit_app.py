@@ -79,49 +79,48 @@ def is_database_query(user_input):
     """Detects if the query is about databases or out of context"""
     user_input_lower = user_input.lower()
     
-    # Palabras clave que indican consulta de BD
+    # Keywords that indicate database queries (English only)
     db_keywords = [
-        "tabla", "datos", "consulta", "cuántos", "cuántas", "mostrar", "listar", 
-        "región", "cliente", "venta", "promedio", "suma", "total", "count",
-        "select", "database", "schema", "registros", "filas", "columnas",
-        "pedidos", "ordenes", "productos", "categorías", "ingresos", "facturación",
-        "análisis", "reporte", "estadísticas", "máximo", "mínimo", "buscar",
-        "filtrar", "agrupar", "ordenar", "top", "mayor", "menor", "últimos", "últimas",
-        # Palabras adicionales para consultas complejas
-        "ciudad", "ciudades", "propiedades", "propiedad", "precio", "precios", "ranking",
-        "rank", "posición", "posiciones", "cada", "obtén", "obtener", "incluir", "solo",
-        "dólares", "valores", "valor", "transacciones", "transaction", "locations",
-        "ubicación", "ubicaciones", "caros", "caras", "expensive", "más", "menos",
+        "table", "data", "query", "how many", "show", "list", "display",
+        "region", "customer", "client", "sale", "average", "sum", "total", "count",
+        "select", "database", "schema", "records", "rows", "columns",
+        "orders", "products", "categories", "revenue", "income", "billing",
+        "analysis", "report", "statistics", "maximum", "minimum", "search",
+        "filter", "group", "sort", "top", "highest", "lowest", "latest", "recent",
+        # Additional keywords for complex queries
+        "city", "cities", "properties", "property", "price", "prices", "ranking",
+        "rank", "position", "positions", "each", "get", "obtain", "include", "only",
+        "dollars", "values", "value", "transactions", "transaction", "locations",
+        "location", "expensive", "cheap", "more", "less", "most", "least",
         "join", "inner", "left", "right", "where", "order by", "group by", "partition",
-        "over", "window", "función", "funciones", "aggregate", "aggregation",
-        # Vocabulario específico de bienes raíces (basado en esquema SQL)
-        "agente", "agentes", "propietario", "propietarios", "dueño", "dueños",
-        "venta", "ventas", "compra", "compras", "comprador", "compradores", "vendedor", "vendedores",
-        "inmueble", "inmuebles", "casa", "casas", "apartamento", "apartamentos", "lote", "lotes",
-        "hipoteca", "hipotecas", "crédito", "financiamiento", "prestamo", "préstamo",
-        "dormitorios", "habitaciones", "baños", "metros", "m2", "pies", "sqft",
-        "garaje", "estacionamiento", "piscina", "jardín", "patio", "terraza",
-        "condado", "estado", "código postal", "zipcode", "msa", "zona", "vecindario",
-        "avaluo", "avalúo", "tasación", "impuesto", "impuestos", "comisión", "comisiones",
-        "listado", "listados", "oferta", "ofertas", "cierre", "cierres", "escritura",
-        "inspección", "evaluación", "mercado", "tendencia", "tendencias", "crecimiento",
-        "rentabilidad", "roi", "inversión", "inversiones", "portfolio", "cartera"
+        "over", "window", "function", "functions", "aggregate", "aggregation",
+        # Real estate specific vocabulary (based on SQL schema)
+        "agent", "agents", "owner", "owners", "buyer", "buyers", "seller", "sellers",
+        "real estate", "house", "houses", "home", "homes", "apartment", "apartments",
+        "mortgage", "mortgages", "credit", "financing", "loan", "loans",
+        "bedroom", "bedrooms", "bathroom", "bathrooms", "sqft", "square feet",
+        "garage", "parking", "pool", "garden", "yard", "patio", "deck",
+        "county", "state", "zip code", "zipcode", "msa", "area", "neighborhood",
+        "appraisal", "assessment", "tax", "taxes", "commission", "commissions",
+        "listing", "listings", "offer", "offers", "closing", "closings", "deed",
+        "inspection", "evaluation", "market", "trend", "trends", "growth",
+        "profitability", "roi", "investment", "investments", "portfolio"
     ]
     
-    # Palabras clave fuera de contexto (ser más específico para evitar conflictos)
+    # Off-topic keywords (be specific to avoid conflicts)
     off_topic_keywords = [
-        "clima", "tiempo atmosférico", "noticias", "receta de cocina", "traducir idioma", "como estas", "que tal",
-        "chiste", "historia personal", "película", "música", "deporte", "política",
-        "salud personal", "medicina", "viaje turístico", "restaurante", "comprar ropa",
-        "horario personal", "dirección postal", "teléfono personal", "email personal", "programar cita"
-        # Removido "precio" y "código" ya que pueden ser parte de consultas de BD
+        "weather", "climate", "news", "cooking recipe", "translate language", "how are you", "hello",
+        "joke", "personal story", "movie", "music", "sports", "politics",
+        "personal health", "medicine", "travel", "restaurant", "buy clothes", "shopping",
+        "personal schedule", "postal address", "personal phone", "personal email", "schedule appointment"
+        # Removed "price" and "code" as they can be part of DB queries
     ]
     
-    # Preguntas de ayuda/información (caso especial)
+    # Help/information questions (special case)
     help_keywords = [
-        "ayuda", "qué puedes hacer", "cómo funciona", "qué haces",
-        "para qué sirves", "cómo usar", "instrucciones", "comandos",
-        "ejemplos", "capacidades", "funciones"
+        "help", "what can you do", "how does it work", "what do you do",
+        "what are you for", "how to use", "instructions", "commands",
+        "examples", "capabilities", "functions"
     ]
     
     # Verificar si es pregunta de ayuda
@@ -136,24 +135,24 @@ def is_database_query(user_input):
     if any(keyword in user_input_lower for keyword in db_keywords):
         return "database"
     
-    # Si no es claro, analizar más profundamente
-    if len(user_input.split()) < 3:  # Muy corto, probablemente no es consulta DB
+    # If not clear, analyze more deeply
+    if len(user_input.split()) < 3:  # Too short, probably not a DB query
         return "unclear"
     
-    # Para consultas largas (>10 palabras), probablemente son consultas de BD complejas
+    # For long queries (>10 words), probably complex DB queries
     if len(user_input.split()) > 10:
-        # Verificar si tiene estructura de consulta de datos
+        # Check if it has data query structure
         data_structure_indicators = [
-            "para cada", "obtener", "obtener un", "mostrar", "listar", "encontrar",
-            "calcular", "sumar", "contar", "agrupar por", "ordenar por",
-            "con precio", "con valor", "mayor a", "menor a", "igual a",
-            "incluir", "excluir", "solo", "solamente", "únicamente"
+            "for each", "get", "obtain", "show", "list", "find",
+            "calculate", "sum", "count", "group by", "order by",
+            "with price", "with value", "greater than", "less than", "equal to",
+            "include", "exclude", "only", "just", "exclusively"
         ]
         
         if any(indicator in user_input_lower for indicator in data_structure_indicators):
             return "database"
     
-    return "database"  # Por defecto, intentar como consulta de BD
+    return "database"  # By default, try as DB query
 
 
 def get_help_response():
