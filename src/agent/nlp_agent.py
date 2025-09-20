@@ -246,47 +246,92 @@ class SnowflakeNLPAgent:
             # Execute SQL chain using invoke method
             result = self.sql_chain.invoke(user_question)
 
-            # Log generated query
+            # SQLDatabaseChain executes SQL automatically and stores results in intermediate_steps
+            # The final result["result"] contains the SQL query, not the data!
+            # We need to extract both SQL and data from intermediate_steps
+            
             sql_query = "N/A"
+            chain_data = None
+            
             if "intermediate_steps" in result and result["intermediate_steps"]:
-                try:
-                    # Try different possible structures
-                    step = result["intermediate_steps"][0]
-                    if isinstance(step, dict):
+                self.log_step("🔍 Analyzing intermediate_steps", f"Steps found: {len(result['intermediate_steps'])}")
+                
+                for i, step in enumerate(result["intermediate_steps"]):
+                    self.log_step(f"📋 Step {i+1}", f"Type: {type(step)}, Content preview: {str(step)[:100]}...")
+                    
+                    # SQLDatabaseChain typically stores steps as tuples: (sql_query, sql_result)
+                    if isinstance(step, tuple) and len(step) == 2:
+                        potential_sql, potential_data = step
+                        if isinstance(potential_sql, str) and 'SELECT' in potential_sql.upper():
+                            sql_query = potential_sql
+                            chain_data = potential_data
+                            self.log_step(
+                                "✅ Found SQL and data in tuple", 
+                                f"SQL: {sql_query[:50]}..., Data preview: {str(potential_data)[:100]}..."
+                            )
+                            break
+                    
+                    # Legacy format handling
+                    elif isinstance(step, dict):
                         # Check different possible keys
-                        sql_query = (
+                        potential_sql = (
                             step.get("sql_cmd")
                             or step.get("query")
                             or step.get("sql")
-                            or str(step)
                         )
-                    else:
-                        sql_query = str(step)
-                    self.log_step("📝 Generated SQL query", sql_query)
-                except (KeyError, IndexError, TypeError):
-                    self.log_step(
-                        "⚠️ Could not extract SQL",
-                        f"Structure: {result.get('intermediate_steps', 'N/A')}",
-                    )
+                        potential_data = (
+                            step.get("sql_result")
+                            or step.get("result")
+                            or step.get("data")
+                        )
+                        
+                        if potential_sql:
+                            sql_query = potential_sql
+                            self.log_step("📝 Found SQL in dict", sql_query)
+                        if potential_data:
+                            chain_data = potential_data
+                            self.log_step("📊 Found data in dict", f"Data preview: {str(potential_data)[:100]}...")
+                            
+                        if sql_query != "N/A" and chain_data:
+                            break
+            
+            # If we found data in intermediate_steps, use it directly
+            if chain_data is not None:
+                self.log_step("🎯 Using data from intermediate_steps", f"Rows: {len(chain_data) if hasattr(chain_data, '__len__') else 'N/A'}")
+                return {
+                    "success": True,
+                    "result": chain_data,  # Use the actual data, not the SQL
+                    "sql_query": sql_query,
+                    "intermediate_steps": result.get("intermediate_steps", []),
+                }
 
-            # If we have clear SQL, execute it directly to get real data
+            # FALLBACK: If intermediate_steps didn't provide data, try manual execution
+            self.log_step("🔄 Fallback: No data in intermediate_steps, trying manual execution", "")
+            
             actual_result = None
-            if isinstance(sql_query, str):
+            if isinstance(sql_query, str) and sql_query != "N/A":
                 # Normalize SQL (remove possible backticks/markdown) - Enhanced for CodeLlama
                 cleaned_sql = self.clean_sql_response(sql_query)
+                self.log_step("🧹 SQL after cleaning", f"Original: {sql_query[:50]}... -> Cleaned: {cleaned_sql[:50]}...")
+                
                 if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                     try:
-                        self.log_step("🚀 Executing detected SQL", cleaned_sql)
+                        self.log_step("🚀 FALLBACK: Executing detected SQL", cleaned_sql)
                         actual_result = self.db.run(cleaned_sql)
                         self.log_step(
-                            "✅ Results obtained",
-                            f"{len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",  # noqa: E501
+                            "✅ FALLBACK execution successful",
+                            f"Got {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows. Data preview: {str(actual_result)[:100]}..."
                         )
                     except Exception as e:
                         self.log_step(
                             "⚠️ Error executing generated SQL", f"Error: {str(e)}"
                         )
                         actual_result = None
+                else:
+                    self.log_step(
+                        "⚠️ SQL cleaning failed or invalid", 
+                        f"Cleaned SQL: '{cleaned_sql}' from original: '{sql_query}'"
+                    )
 
             # If we couldn't execute the previous SQL, try extracting data from
             # intermediate_steps
@@ -327,15 +372,25 @@ class SnowflakeNLPAgent:
                                 "🚀 Executing LLM response as SQL", cleaned_final
                             )
                             actual_result = self.db.run(cleaned_final)
+                            self.log_step(
+                                "✅ Final execution successful",
+                                f"Got {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",
+                            )
                         except Exception as e:
                             self.log_step(
                                 "⚠️ Error executing LLM response", f"Error: {str(e)}"
                             )
-                            actual_result = final_answer
+                            # DO NOT return SQL as result - return empty data instead
+                            actual_result = []
                     else:
-                        actual_result = final_answer
+                        # If it's not SQL, but we have no data, return empty results
+                        self.log_step(
+                            "⚠️ No valid SQL found in final answer", 
+                            f"Final answer: {final_answer[:100]}..."
+                        )
+                        actual_result = []
                 else:
-                    actual_result = final_answer
+                    actual_result = final_answer if final_answer else []
 
             return {
                 "success": True,

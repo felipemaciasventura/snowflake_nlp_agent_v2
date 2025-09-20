@@ -615,124 +615,30 @@ def _render_successful_result(result, prompt):
     response_content = "Query executed successfully:"
     st.write(response_content)
 
+    # The agent's process_query method should return actual executed data
+    # If result["result"] contains SQL instead of data, there's a logic issue
+    
     if not result.get("result"):
         st.write("No results found.")
         _append_assistant_message("No results found.")
         return
 
     try:
-        # Try to extract real SQL from the structure
-        actual_sql = "N/A"
-        raw_sql = result.get('sql_query', 'NO SQL')
-        raw_sql_str = str(raw_sql)
+        actual_data = result["result"]
         
-        # Look for SQL query in the structure - try multiple patterns
-        import re
+        # Check if we received SQL instead of data (indicates a problem)
+        if isinstance(actual_data, str) and actual_data.strip().upper().startswith('SELECT'):
+            st.error("⚠️ Received SQL query instead of data results. This indicates a processing issue.")
+            st.code(actual_data)
+            _append_assistant_message(f"Processing issue - received SQL instead of results: {actual_data}")
+            return
         
-        # Pattern 1: Try to find SQL from LangChain result  
-        # Also check the result["result"] which might contain the Answer
-        result_answer = result.get("result", "")
+        # Get the SQL that was executed for column name extraction
+        executed_sql = result.get('sql_query', '')
         
-        sql_patterns = [
-            r"^(SELECT.*?)$",                            # Full SELECT statement (multiline)
-            r"^(SELECT[^\n\r;]+)",                       # Raw SELECT statement at start  
-            r"Answer[:\s]*(SELECT[^\n\r;]+)",           # Answer: SELECT...
-            r"SQLQuery[:\s]*([^'\"]*SELECT[^'\n\r]+)",  # SQLQuery: SELECT...
-            r"'sql_cmd'[:\s]*['\"]([^'\"]+)['\"]?",      # 'sql_cmd': 'SELECT...'
-            r"'query'[:\s]*['\"]([^'\"]+)['\"]?",        # 'query': 'SELECT...'
-        ]
-        
-        # The real SQL is in result["result"] which is the Answer from LangChain
-        
-        # Plan B: If SQL extraction fails, use contextual inference
-        contextual_names = None
-        prompt_lower = prompt.lower()
-        
-        if isinstance(result['result'], str) and result['result'].startswith('['):
-            # Parse the data to see structure
-            try:
-                import ast
-                import re
-                
-                # Clean the result string to handle Decimal objects
-                cleaned_result = result['result']
-                # Replace Decimal('123.456') with just 123.456
-                decimal_pattern = r"Decimal\('([^']+)'\)"
-                cleaned_result = re.sub(decimal_pattern, r'\1', cleaned_result)
-                
-                sample_data = ast.literal_eval(cleaned_result)
-                if sample_data and isinstance(sample_data[0], tuple):
-                    num_cols = len(sample_data[0])
-                    
-                    # Pattern 1: Most expensive properties by city (3 cols)
-                    if ('most expensive properties' in prompt_lower and 'city' in prompt_lower):
-                        if num_cols == 3:
-                            contextual_names = ['City Name', 'Property Id', 'Property Price']
-                        elif num_cols == 2:
-                            contextual_names = ['City Name', 'Property Price']
-                    
-                    # Pattern 2: Which city has most expensive houses (2 cols: city, avg_price)
-                    elif ('which city' in prompt_lower and 'expensive' in prompt_lower and 
-                          any(word in prompt_lower for word in ['house', 'houses', 'home', 'homes', 'property', 'properties'])):
-                        if num_cols == 2:
-                            contextual_names = ['City Name', 'Average Price']
-                        elif num_cols == 1:
-                            contextual_names = ['City Name']
-                    
-                    # Pattern 3: City-based queries with averages/totals (2 cols)
-                    elif ('city' in prompt_lower and any(word in prompt_lower for word in ['average', 'avg', 'total', 'sum'])):
-                        if num_cols == 2:
-                            # Determine second column based on context
-                            if 'price' in prompt_lower:
-                                contextual_names = ['City Name', 'Average Price']
-                            elif 'income' in prompt_lower:
-                                contextual_names = ['City Name', 'Average Income']
-                            elif 'population' in prompt_lower:
-                                contextual_names = ['City Name', 'Population']
-                            else:
-                                contextual_names = ['City Name', 'Value']
-                    
-                    # Pattern 4: Agent-related queries
-                    elif ('agent' in prompt_lower and any(word in prompt_lower for word in ['most', 'top', 'best'])):
-                        if num_cols == 3:
-                            contextual_names = ['Agent First Name', 'Agent Last Name', 'Total Sales']
-                        elif num_cols == 2:
-                            contextual_names = ['Agent Name', 'Sales Count']
-                    
-                    # Pattern 5: Property type queries  
-                    elif ('property type' in prompt_lower or 'type of property' in prompt_lower):
-                        if num_cols == 2:
-                            contextual_names = ['Property Type', 'Count']
-                        elif num_cols == 3:
-                            contextual_names = ['Property Type', 'Average Price', 'Count']
-                    
-            except Exception:
-                pass
-        
-        
-        # Try result answer first since that's what actually gets executed
-        search_texts = []
-        if isinstance(result_answer, str) and 'SELECT' in result_answer.upper():
-            search_texts.append(result_answer)
-        search_texts.append(raw_sql_str)  # Fallback to raw sql
-        
-        for search_text in search_texts:
-            for pattern in sql_patterns:
-                match = re.search(pattern, search_text, re.IGNORECASE | re.MULTILINE)
-                if match:
-                    potential_sql = match.group(1).strip()
-                    if 'SELECT' in potential_sql.upper() and len(potential_sql) > 20:
-                        actual_sql = potential_sql
-                        break
-            if actual_sql != "N/A":
-                break
-            
-        
-        # Use contextual names if SQL extraction failed
-        sql_for_df = actual_sql if actual_sql != "N/A" else contextual_names
-        
+        # Format the actual data into a DataFrame
         df = format_sql_result_to_dataframe(
-            result["result"], sql_for_df, prompt
+            actual_data, executed_sql, prompt
         )
         
         st.dataframe(df, width='stretch')
@@ -741,7 +647,9 @@ def _render_successful_result(result, prompt):
             f"📊 {num_rows} record{'s' if num_rows != 1 else ''} found"
         )
         _append_assistant_message(response_content, df)
-    except Exception:
+        
+    except Exception as e:
+        st.error(f"Error formatting results: {str(e)}")
         result_text = str(result.get("result"))
         st.code(result_text)
         _append_assistant_message(f"{response_content}\n{result_text}")
