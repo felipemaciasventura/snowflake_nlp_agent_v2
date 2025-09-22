@@ -155,7 +155,7 @@ snowflake_nlp_agent_v2/
 │       └── helpers.py
 ├── 📋 requirements.txt        # Dependencias Python
 ├── 🔧 .env.example           # Template configuración
-└── 📚 WARP.md                # Documentación desarrollo
+└── 📚 manual.md                # Documentación desarrollo
 ```
 
 ### Tecnologías Clave
@@ -322,7 +322,7 @@ Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
 
 - 📧 **Email**: soporte@empresa.com
 - 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/snowflake_nlp_agent_v2/issues)
-- 📚 **Documentación**: Ver `WARP.md` para detalles técnicos
+- 📚 **Documentación**: Ver `manual.md` para detalles técnicos
 
 ## 🙏 Agradecimientos
 

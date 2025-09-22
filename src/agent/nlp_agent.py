@@ -15,6 +15,9 @@ from typing import Dict, Any, Optional
 import pandas as pd
 from src.utils.config import config
 from src.utils.prompt_loader import prompt_loader
+from src.utils.context_enhancer import get_context_enhancer
+from src.utils.helpers import log_manager
+import time
 
 
 class SnowflakeNLPAgent:
@@ -76,6 +79,9 @@ class SnowflakeNLPAgent:
             raise RuntimeError("No LLM provider available. Configure GOOGLE_API_KEY, GROQ_API_KEY or OLLAMA_BASE_URL.")
 
         self.db = SQLDatabase.from_uri(db_connection)
+        
+        # Initialize enhanced context system
+        self.context_enhancer = get_context_enhancer(self.db._engine)
 
         # Load prompt template from external source for cleaner code organization
         # This allows easy prompt updates without code changes
@@ -223,17 +229,30 @@ class SnowflakeNLPAgent:
         
         return None  # Not a metadata query
 
-    def process_query(self, user_question: str) -> Dict[str, Any]:
-        """Process user query and return data ready for the UI.
+    def process_query(self, user_question: str, use_enhanced_context: bool = True) -> Dict[str, Any]:
+        """Process user query with enhanced context and return data ready for the UI.
 
-        Flow:
-        1) Invoke SQL chain to get SQL from natural language
-        2) Extract generated SQL from LangChain intermediate_steps
-        3) Normalize/remove markdown format if it exists
-        4) Execute SQL directly against Snowflake (via SQLDatabase)
-        5) If no clear SQL, try alternatives (intermediate_steps, LLM response)
-        6) Log each step for traceability in Streamlit
+        Enhanced Flow:
+        1) Get enhanced context (schema + query history + domain insights)
+        2) Generate enhanced prompt with rich context
+        3) Invoke SQL chain with enhanced prompt
+        4) Extract generated SQL from LangChain intermediate_steps
+        5) Record query execution for learning
+        6) Return results with comprehensive logging
+        
+        Args:
+            user_question: The user's natural language question
+            use_enhanced_context: Whether to use the enhanced context system
+        
+        Returns:
+            Dict with success, result, sql_query, and metadata
         """
+        start_time = time.time()
+        execution_success = False
+        generated_sql = None
+        result_count = None
+        error_message = None
+        
         try:
             # Log processing start
             self.log_step("🔍 Processing query", user_question)
@@ -242,14 +261,59 @@ class SnowflakeNLPAgent:
             metadata_result = self._handle_metadata_query(user_question)
             if metadata_result is not None:
                 return metadata_result
-
-            # Execute SQL chain using invoke method
-            result = self.sql_chain.invoke(user_question)
-
-            # SQLDatabaseChain executes SQL automatically and stores results in intermediate_steps
-            # The final result["result"] contains the SQL query, not the data!
-            # We need to extract both SQL and data from intermediate_steps
             
+            # Get enhanced context if enabled
+            enhanced_context = None
+            if use_enhanced_context:
+                try:
+                    self.log_step("🧠 Getting enhanced context", "Analyzing schema and query history")
+                    enhanced_context = self.context_enhancer.get_enhanced_context(
+                        user_question=user_question,
+                        refresh_schema=False,
+                        include_samples=True,
+                        include_history=True
+                    )
+                    
+                    self.log_step(
+                        "📊 Context quality", 
+                        f"Quality: {enhanced_context.context_quality_score:.2f}, "
+                        f"Tables: {len(enhanced_context.database_context.tables)}, "
+                        f"Similar queries: {len(enhanced_context.query_context.similar_successful_queries)}"
+                    )
+                    
+                    # Generate enhanced prompt
+                    base_prompt = prompt_loader.get_sql_prompt("enhanced")
+                    enhanced_prompt = self.context_enhancer.generate_enhanced_prompt(
+                        user_question=user_question,
+                        base_prompt=base_prompt, 
+                        enhanced_context=enhanced_context
+                    )
+                    
+                    # Create a new chain with enhanced prompt for this query
+                    from langchain.prompts import PromptTemplate
+                    enhanced_chain = SQLDatabaseChain.from_llm(
+                        self.llm,
+                        self.db,
+                        verbose=True,
+                        return_intermediate_steps=True,
+                        prompt=PromptTemplate(
+                            input_variables=["input", "table_info"], 
+                            template=enhanced_prompt
+                        ),
+                    )
+                    
+                    self.log_step("✨ Enhanced context applied", "Using context-aware prompt")
+                    result = enhanced_chain.invoke({"input": user_question})
+                    
+                except Exception as e:
+                    self.log_step("⚠️ Context enhancement failed", f"Falling back to standard mode: {str(e)}")
+                    result = self.sql_chain.invoke(user_question)
+            else:
+                # Standard processing without enhanced context
+                self.log_step("🔧 Standard processing", "Using base SQL chain")
+                result = self.sql_chain.invoke(user_question)
+            
+            # Extract SQL and data from LangChain result
             sql_query = "N/A"
             chain_data = None
             
@@ -273,16 +337,11 @@ class SnowflakeNLPAgent:
                     
                     # Legacy format handling
                     elif isinstance(step, dict):
-                        # Check different possible keys
                         potential_sql = (
-                            step.get("sql_cmd")
-                            or step.get("query")
-                            or step.get("sql")
+                            step.get("sql_cmd") or step.get("query") or step.get("sql")
                         )
                         potential_data = (
-                            step.get("sql_result")
-                            or step.get("result")
-                            or step.get("data")
+                            step.get("sql_result") or step.get("result") or step.get("data")
                         )
                         
                         if potential_sql:
@@ -295,111 +354,96 @@ class SnowflakeNLPAgent:
                         if sql_query != "N/A" and chain_data:
                             break
             
+            # Store the generated SQL for learning
+            generated_sql = sql_query if sql_query != "N/A" else None
+            
+            # Process results
+            actual_result = None
+            
             # If we found data in intermediate_steps, use it directly
             if chain_data is not None:
                 self.log_step("🎯 Using data from intermediate_steps", f"Rows: {len(chain_data) if hasattr(chain_data, '__len__') else 'N/A'}")
-                return {
-                    "success": True,
-                    "result": chain_data,  # Use the actual data, not the SQL
-                    "sql_query": sql_query,
-                    "intermediate_steps": result.get("intermediate_steps", []),
-                }
+                actual_result = chain_data
+                execution_success = True
+                result_count = len(chain_data) if hasattr(chain_data, '__len__') else None
 
-            # FALLBACK: If intermediate_steps didn't provide data, try manual execution
-            self.log_step("🔄 Fallback: No data in intermediate_steps, trying manual execution", "")
-            
-            actual_result = None
-            if isinstance(sql_query, str) and sql_query != "N/A":
-                # Normalize SQL (remove possible backticks/markdown) - Enhanced for CodeLlama
-                cleaned_sql = self.clean_sql_response(sql_query)
-                self.log_step("🧹 SQL after cleaning", f"Original: {sql_query[:50]}... -> Cleaned: {cleaned_sql[:50]}...")
-                
-                if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
-                    try:
-                        self.log_step("🚀 FALLBACK: Executing detected SQL", cleaned_sql)
-                        actual_result = self.db.run(cleaned_sql)
-                        self.log_step(
-                            "✅ FALLBACK execution successful",
-                            f"Got {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows. Data preview: {str(actual_result)[:100]}..."
-                        )
-                    except Exception as e:
-                        self.log_step(
-                            "⚠️ Error executing generated SQL", f"Error: {str(e)}"
-                        )
-                        actual_result = None
-                else:
-                    self.log_step(
-                        "⚠️ SQL cleaning failed or invalid", 
-                        f"Cleaned SQL: '{cleaned_sql}' from original: '{sql_query}'"
-                    )
+            else:
+                # FALLBACK: Manual SQL execution
+                self.log_step("🔄 Fallback: Manual execution", "")
+                execution_success = False  # Initialize for fallback path
 
-            # If we couldn't execute the previous SQL, try extracting data from
-            # intermediate_steps
-            if (
-                actual_result is None
-                and "intermediate_steps" in result
-                and result["intermediate_steps"]
-            ):
-                for step in result["intermediate_steps"]:
-                    if isinstance(step, dict):
-                        for key in ["sql_result", "result", "data", "query_result"]:
-                            if (
-                                key in step
-                                and step[key]
-                                and step[key] != result.get("result")
-                            ):
-                                actual_result = step[key]
-                                self.log_step(
-                                    "✅ Data found in intermediate_steps",
-                                    f"Field: {key}, "
-                                    f"Data: {str(actual_result)[:100]}...",
-                                )
-                                break
-                    if actual_result:
-                        break
+                if isinstance(sql_query, str) and sql_query != "N/A":
+                    # Clean SQL (remove markdown/backticks)
+                    cleaned_sql = self.clean_sql_response(sql_query)
+                    self.log_step("🧹 SQL after cleaning", f"Original: {sql_query[:50]}... -> Cleaned: {cleaned_sql[:50]}...")
 
-            # Last resort: if the final result is SQL, execute it
-            if actual_result is None:
-                final_answer = result.get("result")
-                if isinstance(final_answer, str):
-                    # Clean the final response too
-                    cleaned_final = self.clean_sql_response(final_answer)
-                    if cleaned_final and cleaned_final.upper().startswith(
-                        ("SELECT", "SHOW", "DESCRIBE")
-                    ):
+                    if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
                         try:
+                            self.log_step("🚀 Executing cleaned SQL", cleaned_sql)
+                            actual_result = self.db.run(cleaned_sql)
+                            execution_success = True
+                            result_count = len(actual_result) if hasattr(actual_result, '__len__') else None
+                            generated_sql = cleaned_sql  # Use cleaned version
+
                             self.log_step(
-                                "🚀 Executing LLM response as SQL", cleaned_final
+                                "✅ Manual execution successful",
+                                f"Got {result_count} rows. Data preview: {str(actual_result)[:100]}..."
                             )
-                            actual_result = self.db.run(cleaned_final)
-                            self.log_step(
-                                "✅ Final execution successful",
-                                f"Got {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'} rows",
-                            )
+
+                            # DEBUG: Log the actual result type and content
+                            self.log_step("🔍 DEBUG: Result type", f"Type: {type(actual_result)}, Length: {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'}")
+                            if hasattr(actual_result, '__len__') and len(actual_result) > 0:
+                                self.log_step("🔍 DEBUG: First row", f"First row: {str(actual_result[0])}")
+                            else:
+                                self.log_step("🔍 DEBUG: Empty result", "Result is empty or not a list")
+
                         except Exception as e:
-                            self.log_step(
-                                "⚠️ Error executing LLM response", f"Error: {str(e)}"
-                            )
-                            # DO NOT return SQL as result - return empty data instead
+                            execution_success = False
+                            error_message = str(e)
+                            self.log_step("⚠️ Error executing SQL", error_message)
                             actual_result = []
                     else:
-                        # If it's not SQL, but we have no data, return empty results
-                        self.log_step(
-                            "⚠️ No valid SQL found in final answer", 
-                            f"Final answer: {final_answer[:100]}..."
-                        )
+                        execution_success = False
+                        error_message = "Invalid or unrecognized SQL format"
+                        self.log_step("⚠️ SQL format invalid", error_message)
                         actual_result = []
                 else:
-                    actual_result = final_answer if final_answer else []
-
-            return {
-                "success": True,
+                    execution_success = False
+                    error_message = "No SQL query found in LLM response"
+                    self.log_step("⚠️ No SQL found", error_message)
+                    actual_result = []
+            
+            # Record query execution for learning (if enhanced context is enabled)
+            if use_enhanced_context and generated_sql:
+                try:
+                    execution_time = time.time() - start_time
+                    self.context_enhancer.record_query_execution(
+                        user_question=user_question,
+                        generated_sql=generated_sql,
+                        success=execution_success,
+                        execution_time=execution_time,
+                        result_count=result_count,
+                        error_message=error_message
+                    )
+                    self.log_step("📚 Query recorded", f"Learning from execution: success={execution_success}")
+                except Exception as e:
+                    self.log_step("⚠️ Failed to record query", str(e))
+            
+            # Prepare response
+            response = {
+                "success": execution_success or (actual_result is not None),
                 "result": actual_result,
-                "sql_query": (
-                    sql_query if isinstance(sql_query, str) else str(sql_query)
-                ),
+                "sql_query": generated_sql or "N/A",
                 "intermediate_steps": result.get("intermediate_steps", []),
             }
+            
+            # Add enhanced context metadata if available
+            if enhanced_context:
+                response["context_quality"] = enhanced_context.context_quality_score
+                response["context_warnings"] = enhanced_context.warning_messages
+                response["suggested_tables"] = enhanced_context.domain_insights.get("suggested_tables", [])
+            
+            return response
 
         except Exception as e:
             error_msg = str(e)

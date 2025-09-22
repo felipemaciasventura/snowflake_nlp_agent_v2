@@ -55,6 +55,14 @@ Generate SQL query only, no explanations."""
     def get_sql_prompt(self, provider: str = "gemini") -> str:
         """Get SQL prompt for specific LLM provider"""
         
+        # Check for enhanced prompt first
+        if provider == "enhanced":
+            enhanced_prompt = self.load_prompt_from_file("enhanced_sql_prompt.txt")
+            if enhanced_prompt and enhanced_prompt != self._get_minimal_prompt():
+                return enhanced_prompt
+            # Fallback to standard if enhanced not found
+            provider = "gemini"
+        
         # Try provider-specific prompt file first
         provider_prompt = self.load_prompt_from_file(f"{provider}_sql_prompt.txt")
         if provider_prompt and provider_prompt != self._get_minimal_prompt():

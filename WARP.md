@@ -1,6 +1,6 @@
-# WARP.md
+# manual.md
 
-This file provides guidance to WARP (warp.dev) when working with code in this repository.
+This file provides guidance to manual (manual.dev) when working with code in this repository.
 
 ## Project Overview
 
@@ -115,7 +115,7 @@ snowflake_nlp_agent_v2/
 │   └── utils/         # Configuration and utility functions
 ├── requirements.txt   # Python dependencies
 ├── .env.example      # Environment variables template
-└── WARP.md           # This file
+└── manual.md           # This file
 ```
 
 ### Core Components

@@ -24,13 +24,13 @@
 - **📝 Sistema avanzado de limpieza SQL** para formato markdown de CodeLlama
 - **🔒 Prioridad local-first**: Ollama > Gemini > Groq
 - **🚫 Cero costos API** con procesamiento 100% local
-- **📚 Documentación actualizada** README.md y WARP.md completos
+- **📚 Documentación actualizada** README.md y manual.md completos
 
 #### 📁 Archivos Afectados:
 ```
 modified:   .env.example
 modified:   README.md
-modified:   WARP.md
+modified:   manual.md
 modified:   src/agent/nlp_agent.py
 modified:   src/utils/config.py
 modified:   streamlit_app.py
@@ -48,11 +48,11 @@ modified:   streamlit_app.py
 ### 🎯 **Commit #4** - `a65c74b` (HEAD -> master)
 **📅 Fecha**: Enero 2025  
 **🏷️ Tipo**: `docs` - Actualización de documentación  
-**📝 Título**: `Actualizar documentación con README.md completo y mejoras en WARP.md`
+**📝 Título**: `Actualizar documentación con README.md completo y mejoras en manual.md`
 
 #### ✅ Cambios Implementados:
 - **📄 Nuevo README.md profesional** con badges y guía completa
-- **🔄 WARP.md actualizado** con comandos de ejecución mejorados  
+- **🔄 manual.md actualizado** con comandos de ejecución mejorados  
 - **📋 Sección "Recent Updates (v2.1)"** con mejoras documentadas
 - **⚙️ Configuración avanzada** con variables de entorno detalladas
 - **🤝 Guía de contribución** y soporte
@@ -61,7 +61,7 @@ modified:   streamlit_app.py
 #### 📁 Archivos Afectados:
 ```
 new file:   README.md
-modified:   WARP.md
+modified:   manual.md
 ```
 
 ---
@@ -85,7 +85,7 @@ modified:   WARP.md
 #### 📁 Archivos Afectados:
 ```
 modified:   .env.example
-modified:   WARP.md  
+modified:   manual.md  
 modified:   src/agent/nlp_agent.py
 modified:   src/database/snowflake_conn.py
 modified:   src/utils/config.py
@@ -137,7 +137,7 @@ requirements.txt                # Dependencias Python
 #### ✅ Cambios Implementados:
 - **🏗️ Estructura base** del proyecto
 - **📁 Organización modular** en directorios
-- **📋 Documentación inicial** WARP.md
+- **📋 Documentación inicial** manual.md
 - **🧪 Directorio de tests** preparado
 - **⚙️ Configuración base** del proyecto
 
@@ -241,7 +241,7 @@ python-dotenv>=1.0.0
 
 ### 🌱 **v1.0 - Foundation**
 - ✅ **Project Structure**: Organización modular
-- ✅ **Base Documentation**: WARP.md inicial
+- ✅ **Base Documentation**: manual.md inicial
 - ✅ **Directory Layout**: Preparación para escalabilidad
 
 ---

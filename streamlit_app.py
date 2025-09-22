@@ -618,13 +618,16 @@ def _render_successful_result(result, prompt):
     # The agent's process_query method should return actual executed data
     # If result["result"] contains SQL instead of data, there's a logic issue
     
-    if not result.get("result"):
-        st.write("No results found.")
-        _append_assistant_message("No results found.")
+    actual_data = result.get("result")
+    
+    # Check for truly empty results
+    if actual_data is None or (isinstance(actual_data, list) and len(actual_data) == 0):
+        st.write("Query executed successfully. No results found.")
+        _append_assistant_message("Query executed successfully. No results found.")
         return
 
     try:
-        actual_data = result["result"]
+        # actual_data is already extracted above
         
         # Check if we received SQL instead of data (indicates a problem)
         if isinstance(actual_data, str) and actual_data.strip().upper().startswith('SELECT'):
