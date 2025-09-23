@@ -157,6 +157,10 @@ class SnowflakeNLPAgent:
         Returns None if not a metadata query, or result dict if handled.
         """
         user_lower = user_question.lower().strip()
+        try:
+            self.log_step("🔎 Metadata detector", user_lower)
+        except Exception:
+            pass
         
         # Check for table listing queries
         table_queries = [
@@ -167,16 +171,28 @@ class SnowflakeNLPAgent:
         
         # Check for database info queries
         database_queries = [
-            "what database", "which database", "current database", "database name",
-            "what db", "which db", "current db", "db name", "database we are using",
+            "what database", "which database", "wich database", "current database", "database name",
+            "what db", "which db", "wich db", "current db", "db name", "database we are using",
             "database are we using", "what database we are use", "what database we use",
             "database we use now", "what database are we using now"
         ]
         
-        # Check for schema info queries
+        # Check for schema info queries (include common typos and variants)
         schema_queries = [
-            "what schema", "which schema", "current schema", "schema name",
+            "what schema", "which schema", "wich schema", "current schema", "schema name",
             "what schema are we using", "schema we are using"
+        ]
+        
+        # Check for role info queries (include common typos and variants)
+        role_queries = [
+            "what role", "which role", "wich role", "current role", "role name",
+            "what role are we using", "role we are using"
+        ]
+        
+        # Check for warehouse info queries (include common typos and variants)
+        warehouse_queries = [
+            "what warehouse", "which warehouse", "wich warehouse", "current warehouse", "warehouse name",
+            "what warehouse are we using", "warehouse we are using"
         ]
         
         if any(query in user_lower for query in table_queries):
@@ -195,7 +211,7 @@ class SnowflakeNLPAgent:
                 self.log_step("⚠️ Metadata Error", str(e))
                 return None
         
-        elif any(query in user_lower for query in database_queries):
+        elif any(query in user_lower for query in database_queries) or __import__('re').search(r"\b(what|which|wich|current)\b.*\b(database|db)\b", user_lower):
             try:
                 # Get current database name
                 sql = "SELECT CURRENT_DATABASE() AS database_name"
@@ -211,7 +227,7 @@ class SnowflakeNLPAgent:
                 self.log_step("⚠️ Database Query Error", str(e))
                 return None
         
-        elif any(query in user_lower for query in schema_queries):
+        elif any(query in user_lower for query in schema_queries) or __import__('re').search(r"\b(what|which|wich|current)\b.*\b(schema)\b", user_lower):
             try:
                 # Get current schema name
                 sql = "SELECT CURRENT_SCHEMA() AS schema_name"
@@ -227,6 +243,117 @@ class SnowflakeNLPAgent:
                 self.log_step("⚠️ Schema Query Error", str(e))
                 return None
         
+        # Role query detection
+        elif any(query in user_lower for query in role_queries) or __import__('re').search(r"\b(what|which|wich|current)\b.*\b(role)\b", user_lower):
+            try:
+                sql = "SELECT CURRENT_ROLE() AS role_name"
+                self.log_step("👤 Role Query", "Getting current role")
+                result = self.db.run(sql)
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": sql,
+                    "query_type": "metadata"
+                }
+            except Exception as e:
+                self.log_step("⚠️ Role Query Error", str(e))
+                return None
+        
+        # Warehouse query detection
+        elif any(query in user_lower for query in warehouse_queries) or __import__('re').search(r"\b(what|which|wich|current)\b.*\b(warehouse)\b", user_lower):
+            try:
+                sql = "SELECT CURRENT_WAREHOUSE() AS warehouse_name"
+                self.log_step("🏭 Warehouse Query", "Getting current warehouse")
+                result = self.db.run(sql)
+                return {
+                    "success": True,
+                    "result": result,
+                    "sql_query": sql,
+                    "query_type": "metadata"
+                }
+            except Exception as e:
+                self.log_step("⚠️ Warehouse Query Error", str(e))
+                return None
+        
+        # Show specific table content: e.g., "show me agents table"
+        else:
+            import re
+            # Pattern 1: show [me|the] <table> table (with optional trailing punctuation)
+            m = re.search(r"\bshow\s+(?:me\s+|the\s+)?([a-zA-Z0-9_]+)\s+table\b(?:\W|$)", user_lower)
+            # Pattern 2: show <table> (no word 'table'), avoid matching 'tables'
+            m2 = None if m else re.search(r"\bshow\s+(?:me\s+|the\s+)?([a-zA-Z0-9_]+)\b(?:\W|$)", user_lower)
+            candidate = None
+            if m:
+                candidate = m.group(1)
+            elif m2 and m2.group(1) != 'tables':
+                candidate = m2.group(1)
+
+            if candidate:
+                table = candidate
+                self.log_step("🧭 Intent: Table Preview", f"Detected table name: {table}")
+                # Basic validation to avoid injection (alphanumeric and underscore only)
+                if re.fullmatch(r"[A-Za-z0-9_]+", table):
+                    try:
+                        # Build preview SQL using config-driven limit and optional sampling
+                        limit_val = max(1, int(getattr(config, 'SHOW_TABLE_LIMIT', 100)))
+                        sample_pct = float(getattr(config, 'SHOW_TABLE_SAMPLE_PERCENT', 0.0))
+                        if sample_pct > 0.0:
+                            # Snowflake SAMPLE expects a percent value; we pass as-is
+                            sql = f"SELECT * FROM {table} SAMPLE ({sample_pct}) LIMIT {limit_val}"
+                            self.log_step("🎲 Sampling Enabled", f"SAMPLE=({sample_pct}), LIMIT={limit_val}")
+                        else:
+                            sql = f"SELECT * FROM {table} LIMIT {limit_val}"
+                            self.log_step("🎚️ Sampling Disabled", f"LIMIT={limit_val}")
+                        self.log_step("📄 Table Preview", f"Fetching sample rows from table: {table}")
+                        result = self.db.run(sql)
+                        return {
+                            "success": True,
+                            "result": result,
+                            "sql_query": sql,
+                            "query_type": "data_preview"
+                        }
+                    except Exception as e:
+                        self.log_step("⚠️ Table Preview Error", str(e))
+                        return None
+                else:
+                    self.log_step("⚠️ Table Preview Skipped", f"Invalid table identifier: {table}")
+
+            # Fallback: try to detect a table name present in the schema and in the text
+            # This helps when the phrase order confuses the regex
+            try:
+                # Fetch up to 200 table names from current schema
+                tbls_sql = "SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() LIMIT 200"
+                tables_res = self.db.run(tbls_sql)
+                schema_tables = set()
+                for row in tables_res or []:
+                    name = row[0] if isinstance(row, (list, tuple)) else list(row.values())[0]
+                    schema_tables.add(str(name).lower())
+                # Find any table name as a whole word in user_lower
+                for t in schema_tables:
+                    if re.search(rf"\b{re.escape(t)}\b", user_lower):
+                        table = t
+                        self.log_step("🧭 Intent: Table Preview (fallback)", f"Matched schema table: {table}")
+                        limit_val = max(1, int(getattr(config, 'SHOW_TABLE_LIMIT', 100)))
+                        sample_pct = float(getattr(config, 'SHOW_TABLE_SAMPLE_PERCENT', 0.0))
+                        if sample_pct > 0.0:
+                            sql = f"SELECT * FROM {table} SAMPLE ({sample_pct}) LIMIT {limit_val}"
+                            self.log_step("🎲 Sampling Enabled", f"SAMPLE=({sample_pct}), LIMIT={limit_val}")
+                        else:
+                            sql = f"SELECT * FROM {table} LIMIT {limit_val}"
+                            self.log_step("🎚️ Sampling Disabled", f"LIMIT={limit_val}")
+                        self.log_step("📄 Table Preview", f"Fetching sample rows from table: {table}")
+                        result = self.db.run(sql)
+                        return {
+                            "success": True,
+                            "result": result,
+                            "sql_query": sql,
+                            "query_type": "data_preview"
+                        }
+            except Exception as e:
+                self.log_step("⚠️ Table Name Fallback Error", str(e))
+
+        
+        self.log_step("ℹ️ Metadata detector", "No metadata intent matched")
         return None  # Not a metadata query
 
     def process_query(self, user_question: str, use_enhanced_context: bool = True) -> Dict[str, Any]:
@@ -353,21 +480,43 @@ class SnowflakeNLPAgent:
                             
                         if sql_query != "N/A" and chain_data:
                             break
+
+                    # Some providers may pass SQL as a raw string step
+                    elif isinstance(step, str) and 'SELECT' in step.upper():
+                        sql_query = step
+                        self.log_step("📝 Found SQL as raw string in steps", sql_query[:120])
             
+            # If no SQL from steps, check if result['result'] itself holds SQL text
+            if sql_query == "N/A":
+                possible_sql = result.get("result")
+                if isinstance(possible_sql, str) and 'SELECT' in possible_sql.upper():
+                    sql_query = possible_sql
+                    self.log_step("📝 Found SQL in result['result']", sql_query[:120])
+
             # Store the generated SQL for learning
             generated_sql = sql_query if sql_query != "N/A" else None
             
             # Process results
             actual_result = None
             
-            # If we found data in intermediate_steps, use it directly
-            if chain_data is not None:
+            # If we found data in intermediate_steps and it looks like rows, use it; else fall back to manual exec
+            looks_like_rows = False
+            try:
+                if isinstance(chain_data, list) and chain_data:
+                    first = chain_data[0]
+                    looks_like_rows = isinstance(first, (tuple, list, dict)) or hasattr(first, "_mapping")
+            except Exception:
+                looks_like_rows = False
+
+            if chain_data is not None and looks_like_rows:
                 self.log_step("🎯 Using data from intermediate_steps", f"Rows: {len(chain_data) if hasattr(chain_data, '__len__') else 'N/A'}")
                 actual_result = chain_data
                 execution_success = True
                 result_count = len(chain_data) if hasattr(chain_data, '__len__') else None
 
-            else:
+            
+            # If no usable rows found in intermediate_steps, do manual execution
+            if not (chain_data is not None and looks_like_rows):
                 # FALLBACK: Manual SQL execution
                 self.log_step("🔄 Fallback: Manual execution", "")
                 execution_success = False  # Initialize for fallback path
@@ -377,26 +526,19 @@ class SnowflakeNLPAgent:
                     cleaned_sql = self.clean_sql_response(sql_query)
                     self.log_step("🧹 SQL after cleaning", f"Original: {sql_query[:50]}... -> Cleaned: {cleaned_sql[:50]}...")
 
-                    if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE")):
+                    # Accept common starters, including CTEs (WITH ...)
+                    if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "SHOW", "DESCRIBE", "WITH")):
                         try:
                             self.log_step("🚀 Executing cleaned SQL", cleaned_sql)
                             actual_result = self.db.run(cleaned_sql)
                             execution_success = True
                             result_count = len(actual_result) if hasattr(actual_result, '__len__') else None
-                            generated_sql = cleaned_sql  # Use cleaned version
+                            generated_sql = cleaned_sql
 
                             self.log_step(
                                 "✅ Manual execution successful",
                                 f"Got {result_count} rows. Data preview: {str(actual_result)[:100]}..."
                             )
-
-                            # DEBUG: Log the actual result type and content
-                            self.log_step("🔍 DEBUG: Result type", f"Type: {type(actual_result)}, Length: {len(actual_result) if hasattr(actual_result, '__len__') else 'N/A'}")
-                            if hasattr(actual_result, '__len__') and len(actual_result) > 0:
-                                self.log_step("🔍 DEBUG: First row", f"First row: {str(actual_result[0])}")
-                            else:
-                                self.log_step("🔍 DEBUG: Empty result", "Result is empty or not a list")
-
                         except Exception as e:
                             execution_success = False
                             error_message = str(e)
@@ -406,12 +548,8 @@ class SnowflakeNLPAgent:
                         execution_success = False
                         error_message = "Invalid or unrecognized SQL format"
                         self.log_step("⚠️ SQL format invalid", error_message)
+                        self.log_step("⚠️ No SQL found", error_message)
                         actual_result = []
-                else:
-                    execution_success = False
-                    error_message = "No SQL query found in LLM response"
-                    self.log_step("⚠️ No SQL found", error_message)
-                    actual_result = []
             
             # Record query execution for learning (if enhanced context is enabled)
             if use_enhanced_context and generated_sql:

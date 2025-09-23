@@ -83,6 +83,12 @@ LLM_PROVIDER=gemini
 
 # Opcional
 DEBUG=False
+
+# Vista previa de tablas (solo para intenciones tipo "show <tabla>")
+# Número máximo de filas a mostrar en el preview
+SHOW_TABLE_LIMIT=100
+# Porcentaje de muestreo probabilístico (0.0 = desactivado). Ej: 0.1 -> 0.1%
+SHOW_TABLE_SAMPLE_PERCENT=0.0
 ```
 
 ### 3. Ejecutar la Aplicación
@@ -190,6 +196,8 @@ snowflake_nlp_agent_v2/
 | `MODEL_NAME` | Modelo Groq | ❌ | `llama-3.3-70b-versatile` |
 | `GEMINI_MODEL` | Modelo Gemini | ❌ | `gemini-1.5-flash` |
 | `LLM_PROVIDER` | Selección proveedor | ❌ | `auto`, `groq`, `gemini`, `ollama` |
+| `SHOW_TABLE_LIMIT` | Límite de filas en preview de tablas | ❌ | `100` |
+| `SHOW_TABLE_SAMPLE_PERCENT` | Porcentaje de muestreo probabilístico en preview (0.0 desactiva) | ❌ | `0.0` |
 
 **Nota:** 🔄 = Al menos uno de los tres proveedores LLM debe estar configurado
 
@@ -271,6 +279,26 @@ Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una
 #### **Paso 5: Trazabilidad (Logs en UI)**
 
 14. **Panel de Logs**: Durante todo el proceso, se registran logs detallados que se muestran en el panel lateral, ofreciendo total transparencia sobre lo que hizo el sistema, desde la SQL que generó hasta los resultados que obtuvo.
+
+## 🔄 Actualizaciones Recientes (v2.4)
+
+### ✅ Novedades v2.4
+
+- **🔎 Intenciones de metadatos ampliadas**: respuestas directas (sin LLM) para:
+  - Base de datos actual (`CURRENT_DATABASE()`)
+  - Schema actual (`CURRENT_SCHEMA()`)
+  - Role actual (`CURRENT_ROLE()`)
+  - Warehouse actual (`CURRENT_WAREHOUSE()`)
+  - Soporta variantes/typos: "which/what/wich/current ..."
+- **📄 Vista previa de tablas por intención**: para frases tipo "show me agents table" o "show agents" se ejecuta directamente un preview seguro:
+  - Límite configurable por `.env` con `SHOW_TABLE_LIMIT` (por defecto `100`).
+  - Muestreo probabilístico opcional con `SHOW_TABLE_SAMPLE_PERCENT` (por defecto `0.0`, desactivado). Si se activa, se usa `SAMPLE(<percent>) LIMIT <limit>`.
+  - Logs detallados en el panel de procesos.
+- **🧱 UI robusta**: correcciones para cuando el backend retorna resultados como texto (lista de tuplas/string) y fechas tipo `datetime.date(...)`.
+  - Se parsean y normalizan para mostrar un DataFrame correcto.
+- **📋 Checkbox persistente "Show all columns"**: ahora el estado no desaparece y puedes alternar entre columnas clave y todas las columnas tanto en resultados nuevos como en el historial del chat.
+
+---
 
 ## 🔄 Actualizaciones Recientes (v2.3)
 

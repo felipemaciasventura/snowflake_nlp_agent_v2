@@ -40,6 +40,22 @@ class Config:
 
         # App
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+
+        # Data preview / table sample configuration
+        # Default limit set to 100 if not specified in environment
+        try:
+            self.SHOW_TABLE_LIMIT = int(os.getenv("SHOW_TABLE_LIMIT", "100"))
+        except ValueError:
+            self.SHOW_TABLE_LIMIT = 100
+        # Optional probabilistic sampling percentage (e.g., 0.1 for 0.1%)
+        # If unset or invalid/<=0, sampling is disabled
+        try:
+            sample_percent_str = os.getenv("SHOW_TABLE_SAMPLE_PERCENT", "")
+            self.SHOW_TABLE_SAMPLE_PERCENT = float(sample_percent_str) if sample_percent_str != "" else 0.0
+            if self.SHOW_TABLE_SAMPLE_PERCENT <= 0:
+                self.SHOW_TABLE_SAMPLE_PERCENT = 0.0
+        except ValueError:
+            self.SHOW_TABLE_SAMPLE_PERCENT = 0.0
     
     def is_ollama_available(self) -> bool:
         """Check if Ollama is available and accessible"""

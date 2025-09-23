@@ -40,28 +40,94 @@ def setup_sidebar():
     else:
         st.sidebar.error("❌ Not connected")
 
-    # System information
+    # System information + LLM controls
     st.sidebar.header("📊 System Information")
-    if st.session_state.agent:
-        # Detect which LLM model is being used
-        from src.utils.config import config
-        provider = config.get_available_llm_provider()
-        
-        if provider == "ollama":
-            model_info = f"LLM: {config.OLLAMA_MODEL} (Ollama Local)"
-            # Additional information for Ollama
-            st.sidebar.success(f"🏠 Local Model Active")
-            st.sidebar.info(f"📍 Server: {config.OLLAMA_BASE_URL}")
-        elif provider == "gemini":
-            model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
-        elif provider == "groq":
-            model_info = f"LLM: {config.MODEL_NAME} (Groq)"
+    from src.utils.config import config
+
+    # Helper: determine available providers based on .env and availability
+    def _available_providers():
+        options = []
+        if config.GROQ_API_KEY:
+            options.append("groq")
+        if config.GOOGLE_API_KEY:
+            options.append("gemini")
+        if config.is_ollama_available():
+            options.append("ollama")
+        return options
+
+    current_provider = config.get_available_llm_provider() or "auto"
+    providers = _available_providers()
+
+    # Persist selection in session
+    if "selected_llm_provider" not in st.session_state:
+        st.session_state.selected_llm_provider = current_provider if current_provider != "auto" else (providers[0] if providers else "")
+
+    # Provider selector (only if any available)
+    if providers:
+        sel = st.sidebar.selectbox(
+            "LLM Provider",
+            options=providers,
+            index=(providers.index(st.session_state.selected_llm_provider) if st.session_state.selected_llm_provider in providers else 0),
+            help="Choose which LLM to use. Changing this will re-initialize the agent.",
+        )
+        st.session_state.selected_llm_provider = sel
+
+        # Model editor per provider
+        if sel == "groq":
+            model_val = st.sidebar.text_input("Groq model", value=str(config.MODEL_NAME or ""))
+        elif sel == "gemini":
+            model_val = st.sidebar.text_input("Gemini model", value=str(config.GEMINI_MODEL or ""))
+        elif sel == "ollama":
+            model_val = st.sidebar.text_input("Ollama model", value=str(config.OLLAMA_MODEL or ""))
+            st.sidebar.caption(f"Server: {config.OLLAMA_BASE_URL}")
         else:
-            model_info = "LLM: Not detected"
-            
-        st.sidebar.info(model_info)
-        st.sidebar.info(f"Database: {os.getenv('SNOWFLAKE_DATABASE')}")
-        st.sidebar.info(f"Schema: {os.getenv('SNOWFLAKE_SCHEMA')}")
+            model_val = ""
+
+        # Apply changes button
+        if st.sidebar.button("Apply LLM settings"):
+            # Update config in-memory and re-create agent
+            try:
+                # Set provider
+                config.LLM_PROVIDER = sel
+                # Set model field accordingly
+                if sel == "groq" and model_val:
+                    config.MODEL_NAME = model_val
+                elif sel == "gemini" and model_val:
+                    config.GEMINI_MODEL = model_val
+                elif sel == "ollama" and model_val:
+                    config.OLLAMA_MODEL = model_val
+
+                # Re-initialize agent if DB connection exists
+                if st.session_state.db_connection:
+                    google_api_key = os.getenv("GOOGLE_API_KEY")
+                    groq_api_key = os.getenv("GROQ_API_KEY")
+                    st.session_state.agent = SnowflakeNLPAgent(
+                        st.session_state.db_connection.get_connection_string(),
+                        groq_api_key=groq_api_key,
+                        google_api_key=google_api_key,
+                    )
+                    st.sidebar.success("LLM updated and agent re-initialized ✅")
+                else:
+                    st.sidebar.warning("Connect to Snowflake first to initialize the agent.")
+            except Exception as e:
+                st.sidebar.error(f"Failed to apply LLM settings: {e}")
+
+    # Show current info (after potential change)
+    provider = config.get_available_llm_provider()
+    if provider == "ollama":
+        model_info = f"LLM: {config.OLLAMA_MODEL} (Ollama Local)"
+        st.sidebar.success("🏠 Local Model Active")
+        st.sidebar.info(f"📍 Server: {config.OLLAMA_BASE_URL}")
+    elif provider == "gemini":
+        model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
+    elif provider == "groq":
+        model_info = f"LLM: {config.MODEL_NAME} (Groq)"
+    else:
+        model_info = "LLM: Not detected"
+
+    st.sidebar.info(model_info)
+    st.sidebar.info(f"Database: {os.getenv('SNOWFLAKE_DATABASE')}")
+    st.sidebar.info(f"Schema: {os.getenv('SNOWFLAKE_SCHEMA')}")
 
     # Button to clear history
     if st.sidebar.button("🗑️ Clear History"):
@@ -396,12 +462,73 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             else:
                 return pd.DataFrame({"Result": [data]})
 
+        # Normalize single-row structures into a list so downstream logic works uniformly
+        # Single SQLAlchemy Row
+        if not isinstance(data, list) and hasattr(data, "_mapping"):
+            data = [data]
+        # Single dict row
+        if isinstance(data, dict):
+            data = [data]
+        # Single tuple/list row
+        if isinstance(data, tuple):
+            data = [data]
+
         # Case 2: If there's no data or it's not a list
         if not isinstance(data, list) or not data:
             return pd.DataFrame({"Result": ["No data"]})
 
 
         
+        # Normalization utilities (used across formats)
+        def _normalize_value(v):
+            # Normalize common DB types for Arrow compatibility
+            if isinstance(v, (bytes, bytearray)):
+                try:
+                    return v.decode("utf-8", errors="ignore")
+                except Exception:
+                    return str(v)
+            if isinstance(v, Decimal):
+                try:
+                    return float(v)
+                except Exception:
+                    return str(v)
+            return v
+
+        def _readable_names(names):
+            return [str(n).replace("_", " ").title() for n in names]
+
+        # Pre-extract column names from SQL if possible
+        extracted_column_names = extract_column_names_from_sql(sql_query)
+
+        # Case 3: Handle rows returned as SQLAlchemy Row/RowMapping or dicts
+        first_row = data[0]
+        # SQLAlchemy Row -> use _mapping for stable order
+        if hasattr(first_row, "_mapping") and hasattr(first_row._mapping, "keys"):
+            mapping_keys = list(first_row._mapping.keys())
+            rows = []
+            for r in data:
+                vals = [ _normalize_value(r._mapping[k]) for k in mapping_keys ]
+                rows.append(vals)
+            # Prefer names extracted from SQL if they match; else mapping keys prettified
+            if extracted_column_names and len(extracted_column_names) == len(mapping_keys):
+                columns = extracted_column_names
+            else:
+                columns = _readable_names(mapping_keys)
+            return pd.DataFrame(rows, columns=columns)
+
+        # Dict rows
+        if isinstance(first_row, dict):
+            dict_keys = list(first_row.keys())
+            rows = []
+            for r in data:
+                vals = [ _normalize_value(r.get(k)) for k in dict_keys ]
+                rows.append(vals)
+            if extracted_column_names and len(extracted_column_names) == len(dict_keys):
+                columns = extracted_column_names
+            else:
+                columns = _readable_names(dict_keys)
+            return pd.DataFrame(rows, columns=columns)
+
         # Case 5: COUNT queries (English only)
         if "COUNT(*)" in sql_query.upper():
             if len(data) > 0 and len(data[0]) == 1:
@@ -505,25 +632,25 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
 
         # Case 9: Default - create DataFrame with intelligent column names
         try:
-            # First, try to extract column names from SQL query
-            extracted_column_names = extract_column_names_from_sql(sql_query)
-            
-            if extracted_column_names and len(data) > 0 and isinstance(data[0], (tuple, list)):
-                # Use extracted column names if they match the data structure
+            # Normalize tuple/list rows
+            if len(data) > 0 and isinstance(data[0], (tuple, list)):
                 num_cols = len(data[0]) if data[0] else 1
-                if len(extracted_column_names) == num_cols:
-                    df = pd.DataFrame(data, columns=extracted_column_names)
+                normalized_rows = [ [_normalize_value(v) for v in row] for row in data ]
+                if extracted_column_names and len(extracted_column_names) == num_cols:
+                    df = pd.DataFrame(normalized_rows, columns=extracted_column_names)
                     return df
-            
-            # Try to create DataFrame directly
-            df = pd.DataFrame(data)
+                # Fall back to generic names to avoid unnamed columns
+                df = pd.DataFrame(normalized_rows, columns=[f"Column {i+1}" for i in range(num_cols)])
+                return df
+
+            # Fallback attempt
+            df = pd.DataFrame([[_normalize_value(v) for v in data]])
             return df
         except Exception:
             # If it fails, try with intelligent column names
             try:
                 if len(data) > 0 and isinstance(data[0], (tuple, list)):
                     # Try to extract column names from SQL first
-                    extracted_column_names = extract_column_names_from_sql(sql_query)
                     num_cols = len(data[0]) if data[0] else 1
                     
                     if extracted_column_names and len(extracted_column_names) == num_cols:
@@ -532,7 +659,8 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
                         # Create more descriptive generic column names
                         column_names = [f"Column {i+1}" for i in range(num_cols)]
                     
-                    df = pd.DataFrame(data, columns=column_names)
+                    normalized_rows = [ [_normalize_value(v) for v in row] for row in data ]
+                    df = pd.DataFrame(normalized_rows, columns=column_names)
                     return df
                 else:
                     # Data in unexpected format
@@ -585,8 +713,32 @@ def _render_single_message(message):
 
         st.write(message["content"])
         if not message["data"].empty:
-            st.dataframe(message["data"], width='stretch')
-            num_rows = len(message["data"])
+            df_hist = message["data"]
+            executed_sql_hist = message.get("sql", "")
+
+            # Reuse intelligent column selection with persistent checkbox
+            def _norm(name: str) -> str:
+                return str(name).strip().lower().replace(" ", "_")
+
+            key_candidates = [
+                "id", "agent_id", "agent_uid", "property_id",
+                "name", "first_name", "last_name", "full_name",
+                "email", "phone", "agency", "city", "state",
+                "license_number", "active_flag", "date_joined"
+            ]
+            key_norms = set(key_candidates)
+            column_norm_map = {c: _norm(c) for c in df_hist.columns}
+            selected_cols = [c for c, n in column_norm_map.items() if n in key_norms]
+
+            df_to_show_hist = df_hist
+            if df_hist.shape[1] > 12 and len(selected_cols) >= 3:
+                show_all_key_hist = f"show_all_cols_{abs(hash(executed_sql_hist)) % (10**8)}"
+                show_all_hist = st.checkbox("Show all columns", value=False, key=show_all_key_hist)
+                if not show_all_hist:
+                    df_to_show_hist = df_hist[selected_cols]
+
+            st.dataframe(df_to_show_hist, use_container_width=True)
+            num_rows = len(df_hist)
             st.caption(
                 f"📊 {num_rows} record{'s' if num_rows != 1 else ''} shown"
             )
@@ -601,12 +753,13 @@ def display_chat_messages():
         _render_single_message(message)
 
 
-def _append_assistant_message(content, df=None):
-    """Add an assistant message to history with optional DataFrame."""
+def _append_assistant_message(content, df=None, sql: str | None = None):
+    """Add an assistant message to history with optional DataFrame and SQL string for stable UI keys."""
     st.session_state.messages.append({
         "role": "assistant",
         "content": content,
         "data": df if df is not None else pd.DataFrame(),
+        "sql": sql or "",
     })
 
 
@@ -619,6 +772,25 @@ def _render_successful_result(result, prompt):
     # If result["result"] contains SQL instead of data, there's a logic issue
     
     actual_data = result.get("result")
+    # Try to parse stringified list/tuple results into Python objects
+    if isinstance(actual_data, str):
+        from ast import literal_eval
+        import re as _re
+        sanitized = actual_data
+        try:
+            # Replace datetime.date(Y, M, D) with 'YYYY-MM-DD' to make it literal-evaluable
+            def _date_repl(match):
+                y, m, d = match.group(1), match.group(2), match.group(3)
+                try:
+                    y_i, m_i, d_i = int(y), int(m), int(d)
+                    return f"'{y_i:04d}-{m_i:02d}-{d_i:02d}'"
+                except Exception:
+                    return match.group(0)
+            sanitized = _re.sub(r"datetime\.date\(\s*(\d{1,4})\s*,\s*(\d{1,2})\s*,\s*(\d{1,2})\s*\)", _date_repl, sanitized)
+            actual_data = literal_eval(sanitized)
+        except Exception:
+            # Keep as-is if parsing fails
+            pass
     
     # Check for truly empty results
     if actual_data is None or (isinstance(actual_data, list) and len(actual_data) == 0):
@@ -627,7 +799,7 @@ def _render_successful_result(result, prompt):
         return
 
     try:
-        # actual_data is already extracted above
+        # actual_data is already extracted/parsed above
         
         # Check if we received SQL instead of data (indicates a problem)
         if isinstance(actual_data, str) and actual_data.strip().upper().startswith('SELECT'):
@@ -644,12 +816,67 @@ def _render_successful_result(result, prompt):
             actual_data, executed_sql, prompt
         )
         
-        st.dataframe(df, width='stretch')
+        # Intelligent column selection when there are too many columns
+        def _norm(name: str) -> str:
+            return str(name).strip().lower().replace(" ", "_")
+
+        key_candidates = [
+            "id", "agent_id", "agent_uid", "property_id",
+            "name", "first_name", "last_name", "full_name",
+            "email", "phone", "agency", "city", "state",
+            "license_number", "active_flag", "date_joined"
+        ]
+        key_norms = set(key_candidates)
+        column_norm_map = {c: _norm(c) for c in df.columns}
+        selected_cols = [c for c, n in column_norm_map.items() if n in key_norms]
+
+        show_all_key = f"show_all_cols_{abs(hash(executed_sql)) % (10**8)}"
+        use_subset = False
+        df_to_show = df
+        if df.shape[1] > 12:
+            show_all = st.checkbox("Show all columns", value=False, key=show_all_key)
+            if not show_all and len(selected_cols) >= 3:
+                use_subset = True
+                df_to_show = df[selected_cols]
+
+        # Detect URL-like columns for link rendering
+        url_cols = [c for c in df_to_show.columns if ("url" in c.lower() or "website" in c.lower())]
+        column_config = {}
+        for uc in url_cols:
+            try:
+                column_config[uc] = st.column_config.LinkColumn(label=uc)
+            except Exception:
+                pass  # Fallback silently if not supported
+
+        # Row display control
+        st.dataframe(df_to_show, use_container_width=True, column_config=column_config)
         num_rows = len(df)
         st.caption(
             f"📊 {num_rows} record{'s' if num_rows != 1 else ''} found"
         )
-        _append_assistant_message(response_content, df)
+
+        # Export buttons
+        import io
+        csv_data = df.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="Download CSV",
+            data=csv_data,
+            file_name="results.csv",
+            mime="text/csv",
+        )
+        try:
+            buf = io.BytesIO()
+            df.to_parquet(buf, index=False)
+            st.download_button(
+                label="Download Parquet",
+                data=buf.getvalue(),
+                file_name="results.parquet",
+                mime="application/octet-stream",
+            )
+        except Exception:
+            pass  # Parquet dependencies not installed; skip
+
+        _append_assistant_message(response_content, df, executed_sql)
         
     except Exception as e:
         st.error(f"Error formatting results: {str(e)}")
