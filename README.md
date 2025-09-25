@@ -1,248 +1,248 @@
 # 🤖 Snowflake NLP Agent v2
 
-An intelligent web application built with Streamlit that enables natural language queries (English) to Snowflake databases, using LangChain with **triple support** for Groq/Llama, Google Gemini, and Ollama (local models) for automatic text-to-SQL conversion with hybrid query detection.
+An intelligent web application built with Streamlit that enables natural language queries (English) to Snowflake databases, using LangChain with **triple support** for Groq/Llama, Google Gemini, and Ollama (local models) for automatic text-to-SQL conversion with hybrid intent detection.
 
 ![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.8+-blue.svg)
 ![Streamlit](https://img.shields.io/badge/streamlit-1.28+-red.svg)
 ![Snowflake](https://img.shields.io/badge/snowflake-supported-blue.svg)
 
-## 🌟 Características Principales
+## 🌟 Key Features
 
-- **💬 Interfaz de Chat Intuitiva**: Conversación natural con tu base de datos
-- **🧠 Procesamiento NLP Híbrido**: Detección inteligente de consultas (BD vs ayuda vs fuera de contexto)
-- **🔄 Soporte Triple de LLM**: Compatible con Groq/Llama, Google Gemini y Ollama (local) con auto-detección
-- **📊 Visualización Inteligente**: Formateo automático de resultados con tablas interactivas
-- **🔒 Conexión Segura**: Integración robusta con Snowflake usando credenciales encriptadas
-- **🎯 Respuestas Educativas**: Guía inteligente para usuarios con ejemplos y redirección amigable
-- **🎨 Interfaz Moderna**: Diseño responsivo con Streamlit y componentes interactivos
+- **💬 Intuitive Chat Interface**: Natural conversation with your database
+- **🧠 Hybrid NLP Processing**: Smart intent detection (DB vs. help vs. out-of-scope)
+- **🔄 Triple LLM Support**: Works with Groq/Llama, Google Gemini, and Ollama (local) with auto-detection
+- **📊 Smart Visualization**: Automatic result formatting with interactive tables
+- **🔒 Secure Connection**: Robust Snowflake integration using encrypted credentials
+- **🎯 Educational Answers**: Helpful guidance with examples and friendly redirection
+- **🎨 Modern UI**: Responsive design with Streamlit and interactive components
 
-## 🚀 Inicio Rápido
+## 🚀 Quick Start
 
-### Prerrequisitos
+### Prerequisites
 
 - Python 3.8+
 - Cuenta de Snowflake con credenciales de acceso
-- **API Key de Groq** (opción 1) para modelos Llama
-- **API Key de Google Gemini** (opción 2) para modelos Gemini  
-- **Servidor Ollama** (opción 3) para modelos locales
-- Al menos uno de los tres proveedores LLM configurado
+- Groq **API Key** (option 1) for Llama models
+- Google Gemini **API Key** (option 2) for Gemini models  
+- Ollama **server** (option 3) for local models
+- At least one of the three LLM providers configured
 
-### 1. Instalación
+### 1. Installation
 
 ```bash
-# Clonar el repositorio
+# Clone the repository
 git clone https://github.com/tu-usuario/snowflake_nlp_agent_v2.git
 cd snowflake_nlp_agent_v2
 
-# Crear y activar entorno virtual
+# Create and activate a virtual environment
 python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate   # Windows
 
-# Instalar dependencias
+# Install dependencies
 pip install -r requirements.txt
 ```
 
-### 2. Configuración
+### 2. Configuration
 
 ```bash
-# Copiar template de configuración
+# Copy configuration template
 cp .env.example .env
 
-# Editar .env con tus credenciales
+# Edit .env with your credentials
 nano .env
 ```
 
-Configurar las siguientes variables en `.env`:
+Set the following variables in `.env`:
 
 ```env
-# Credenciales Snowflake
-SNOWFLAKE_ACCOUNT=tu-account-url
-SNOWFLAKE_USER=tu-usuario
-SNOWFLAKE_PASSWORD=tu-password
-SNOWFLAKE_WAREHOUSE=tu-warehouse
-SNOWFLAKE_DATABASE=tu-database
+# Snowflake credentials
+SNOWFLAKE_ACCOUNT=your-account-url
+SNOWFLAKE_USER=your-username
+SNOWFLAKE_PASSWORD=your-password
+SNOWFLAKE_WAREHOUSE=your-warehouse
+SNOWFLAKE_DATABASE=your-database
 SNOWFLAKE_SCHEMA=PUBLIC
 
-# Proveedores LLM - Configurar al menos uno
-# Groq (opción 1)
-GROQ_API_KEY=tu-groq-api-key
+# LLM Providers - Configure at least one
+# Groq (option 1)
+GROQ_API_KEY=your-groq-api-key
 MODEL_NAME=llama-3.3-70b-versatile
 
-# Google Gemini (opción 2) - RECOMENDADO
-GOOGLE_API_KEY=tu-google-api-key
+# Google Gemini (option 2) - RECOMMENDED
+GOOGLE_API_KEY=your-google-api-key
 GEMINI_MODEL=gemini-1.5-flash
 
-# Ollama (opción 3 - modelo local)
+# Ollama (option 3 - local model)
 OLLAMA_BASE_URL=http://localhost:11434
 OLLAMA_MODEL=codellama:7b-instruct
 
-# Selección de proveedor (auto, groq, gemini, ollama)
+# Provider selection (auto, groq, gemini, ollama)
 LLM_PROVIDER=gemini
 
-# Opcional
+# Optional
 DEBUG=False
 
-# Vista previa de tablas (solo para intenciones tipo "show <tabla>")
-# Número máximo de filas a mostrar en el preview
+# Table preview (only for intents like "show <table>")
+# Maximum number of rows to display in the preview
 SHOW_TABLE_LIMIT=100
-# Porcentaje de muestreo probabilístico (0.0 = desactivado). Ej: 0.1 -> 0.1%
+# Probabilistic sampling percentage (0.0 = disabled). E.g., 0.1 -> 0.1%
 SHOW_TABLE_SAMPLE_PERCENT=0.0
 ```
 
-### 3. Ejecutar la Aplicación
+### 3. Run the App
 
 ```bash
-# Activar entorno virtual
+# Activate virtual environment
 source venv/bin/activate
 
-# Ejecutar aplicación
+# Run application
 streamlit run streamlit_app.py
 ```
 
-La aplicación estará disponible en `http://localhost:8501`
+The app will be available at `http://localhost:8501`
 
-## 💻 Ejemplos de Uso
+## 💻 Usage Examples
 
-### 🔍 Consultas de Bases de Datos
-
-```
-🔹 "?¿Cuáles son los 10 pedidos con mayor valor?"
-🔹 "Muéstrame las ventas de este mes"
-🔹 "?¿Cuántos clientes hay en total?"
-🔹 "Lista los productos más vendidos"
-🔹 "?¿Qué base de datos estoy usando?"
-🔹 "Muestra las tablas disponibles"
-🔹 "?¿Cuál es el promedio de ingresos por región?"
-```
-
-### 🎯 Consultas de Ayuda (Respuesta Educativa)
+### 🔍 Database Queries
 
 ```
-🔹 "?¿En qué me puedes ayudar?"
-🔹 "?¿Qué puedes hacer?"
-🔹 "?¿Cómo funciona esta aplicación?"
-🔹 "Muéstrame ejemplos de lo que puedes hacer"
+🔹 "What are the 10 highest-value orders?"
+🔹 "Show me this month's sales"
+🔹 "How many customers are there in total?"
+🔹 "List the best-selling products"
+🔹 "Which database am I using?"
+🔹 "Show available tables"
+🔹 "What is the average revenue by region?"
 ```
 
-### 🚫 Consultas Fuera de Contexto (Redirección Amigable)
+### 🎯 Help Queries (Educational Response)
 
 ```
-🔹 "?¿Cómo está el clima?"
-🔹 "Cuéntame un chiste"
-🔹 "?¿Qué películas recomiendas?"
-→ Se redirige amigablemente a funcionalidades de BD
+🔹 "What can you help me with?"
+🔹 "What can you do?"
+🔹 "How does this app work?"
+🔹 "Show me examples of what you can do"
 ```
 
-### Resultados Automáticos
+### 🚫 Out-of-Scope Queries (Friendly Redirection)
 
-La aplicación genera automáticamente:
-- ✅ **Consultas SQL** optimizadas y validadas
-- 📊 **Tablas formateadas** con nombres de columnas amigables
-- 💰 **Formato monetario** para valores financieros
-- 📈 **Contadores de registros** y estadísticas
-- 🔍 **Historial de conversación** persistente
+```
+🔹 "How's the weather?"
+🔹 "Tell me a joke"
+🔹 "What movies do you recommend?"
+→ Friendly redirection to database-related capabilities
+```
 
-## 🏗️ Arquitectura
+### Automatic Outputs
 
-### Estructura del Proyecto
+The application automatically generates:
+- ✅ **Optimized and validated SQL queries**
+- 📊 **Formatted tables** with friendly column names
+- 💰 **Currency formatting** for financial values
+- 📈 **Record counters** and statistics
+- 🔍 **Persistent conversation history**
+
+## 🏗️ Architecture
+
+### Project Structure
 
 ```
 snowflake_nlp_agent_v2/
-├── 📄 streamlit_app.py         # Aplicación principal
+├── 📄 streamlit_app.py         # Main application
 ├── 📁 src/
-│   ├── 🤖 agent/              # Lógica NLP y LangChain
+│   ├── 🤖 agent/              # NLP and LangChain logic
 │   │   └── nlp_agent.py
-│   ├── 🗄️  database/           # Conexión Snowflake
+│   ├── 🗄️  database/           # Snowflake connection
 │   │   └── snowflake_conn.py
-│   └── ⚙️  utils/              # Configuración y helpers
+│   └── ⚙️  utils/              # Configuration and helpers
 │       ├── config.py
 │       └── helpers.py
-├── 📋 requirements.txt        # Dependencias Python
-├── 🔧 .env.example           # Template configuración
-└── 📚 manual.md                # Documentación desarrollo
+├── 📋 requirements.txt        # Python dependencies
+├── 🔧 .env.example           # Configuration template
+└── 📚 manual.md                # Developer documentation
 ```
 
-### Tecnologías Clave
+### Key Technologies
 
-| Tecnología | Propósito | Versión |
-|------------|-----------|----------|
-| **Streamlit** | Framework web | 1.28+ |
-| **LangChain** | Orquestación LLM | 0.1+ |
-| **Groq** | API LLM (Llama 3.3) ✅ | Latest |
-| **Google Gemini** | API LLM (Gemini 1.5) ✅ | Latest |
-| **Ollama** | Modelos locales (CodeLlama) ✅ | 0.6+ |
+| Technology | Purpose | Version |
+|------------|---------|---------|
+| **Streamlit** | Web framework | 1.28+ |
+| **LangChain** | LLM orchestration | 0.1+ |
+| **Groq** | LLM API (Llama 3.3) ✅ | Latest |
+| **Google Gemini** | LLM API (Gemini 1.5) ✅ | Latest |
+| **Ollama** | Local models (CodeLlama) ✅ | 0.6+ |
 | **Snowflake** | Data Warehouse | Connector 3.0+ |
-| **Pandas** | Manipulación datos | 1.5+ |
-| **SQLAlchemy** | ORM y conexiones | 2.0+ |
+| **Pandas** | Data manipulation | 1.5+ |
+| **SQLAlchemy** | ORM and connections | 2.0+ |
 
-## 🔧 Configuración Avanzada
+## 🔧 Advanced Configuration
 
-### Variables de Entorno
+### Environment Variables
 
-| Variable | Descripción | Requerido | Ejemplo |
-|----------|-------------|-----------|---------|
-| `SNOWFLAKE_ACCOUNT` | URL cuenta Snowflake | ✅ | `tu-org-account` |
-| `SNOWFLAKE_USER` | Usuario Snowflake | ✅ | `usuario@empresa.com` |
-| `SNOWFLAKE_PASSWORD` | Contraseña usuario | ✅ | `password123` |
-| `SNOWFLAKE_WAREHOUSE` | Warehouse a usar | ✅ | `COMPUTE_WH` |
-| `SNOWFLAKE_DATABASE` | Base de datos | ✅ | `PROD_DB` |
-| `SNOWFLAKE_SCHEMA` | Schema por defecto | ❌ | `PUBLIC` |
-| `GROQ_API_KEY` | API Key Groq (opción 1) | 🔄 | `gsk_...` |
-| `GOOGLE_API_KEY` | API Key Google Gemini (opción 2) | 🔄 | `AIza...` |
-| `OLLAMA_BASE_URL` | URL servidor Ollama (opción 3) | 🔄 | `http://localhost:11434` |
-| `OLLAMA_MODEL` | Modelo Ollama | ❌ | `codellama:7b-instruct` |
-| `MODEL_NAME` | Modelo Groq | ❌ | `llama-3.3-70b-versatile` |
-| `GEMINI_MODEL` | Modelo Gemini | ❌ | `gemini-1.5-flash` |
-| `LLM_PROVIDER` | Selección proveedor | ❌ | `auto`, `groq`, `gemini`, `ollama` |
-| `SHOW_TABLE_LIMIT` | Límite de filas en preview de tablas | ❌ | `100` |
-| `SHOW_TABLE_SAMPLE_PERCENT` | Porcentaje de muestreo probabilístico en preview (0.0 desactiva) | ❌ | `0.0` |
+| Variable | Description | Required | Example |
+|----------|-------------|----------|---------|
+| `SNOWFLAKE_ACCOUNT` | Snowflake account URL | ✅ | `your-org-account` |
+| `SNOWFLAKE_USER` | Snowflake user | ✅ | `user@company.com` |
+| `SNOWFLAKE_PASSWORD` | User password | ✅ | `password123` |
+| `SNOWFLAKE_WAREHOUSE` | Warehouse to use | ✅ | `COMPUTE_WH` |
+| `SNOWFLAKE_DATABASE` | Database | ✅ | `PROD_DB` |
+| `SNOWFLAKE_SCHEMA` | Default schema | ❌ | `PUBLIC` |
+| `GROQ_API_KEY` | Groq API Key (option 1) | 🔄 | `gsk_...` |
+| `GOOGLE_API_KEY` | Google Gemini API Key (option 2) | 🔄 | `AIza...` |
+| `OLLAMA_BASE_URL` | Ollama server URL (option 3) | 🔄 | `http://localhost:11434` |
+| `OLLAMA_MODEL` | Ollama model | ❌ | `codellama:7b-instruct` |
+| `MODEL_NAME` | Groq model | ❌ | `llama-3.3-70b-versatile` |
+| `GEMINI_MODEL` | Gemini model | ❌ | `gemini-1.5-flash` |
+| `LLM_PROVIDER` | Provider selection | ❌ | `auto`, `groq`, `gemini`, `ollama` |
+| `SHOW_TABLE_LIMIT` | Table preview row limit | ❌ | `100` |
+| `SHOW_TABLE_SAMPLE_PERCENT` | Probabilistic sampling percent for preview (0.0 disables) | ❌ | `0.0` |
 
-**Nota:** 🔄 = Al menos uno de los tres proveedores LLM debe estar configurado
+**Note:** 🔄 = At least one of the three LLM providers must be configured
 
-### Comandos de Desarrollo
+### Development Commands
 
 ```bash
-# Ejecutar con puerto específico
+# Run with a specific port
 streamlit run streamlit_app.py --server.port 8080
 
-# Modo desarrollo con logs detallados
+# Development mode with detailed logs
 DEBUG=True streamlit run streamlit_app.py
 
-# Producción (servidor público)
+# Production (public server)
 streamlit run streamlit_app.py --server.port 8080 --server.address 0.0.0.0
 
 
-# Verificar sintaxis
+# Syntax check
 python -m py_compile streamlit_app.py
 
 # Linting
 flake8 src/ streamlit_app.py
 ```
 
-## 🔬 Ejemplo de Flujo Detallado
+## 🔬 Detailed Flow Example
 
-Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una pregunta simple a través del sistema.
+To understand how the magic works behind the scenes, let’s follow the journey of a simple question through the system.
 
-**Pregunta del usuario:** `¿Cuáles son los 10 clientes que más han gastado?`
-
----
-
-#### **Paso 1: Interfaz de Usuario (Streamlit)**
-
-1.  **Entrada del Usuario**: El usuario escribe la pregunta en el chat de la aplicación web (`streamlit_app.py`).
-2.  **Procesamiento de Entrada**: La aplicación guarda y muestra inmediatamente el mensaje del usuario en la interfaz.
-3.  **Llamada al Agente**: Se invoca al núcleo del sistema: `agent.process_query(...)`.
+**User question:** `Which are the top 10 customers by spending?`
 
 ---
 
-#### **Paso 2: Capa del Agente NLP (LangChain + Groq)**
+#### **Step 1: User Interface (Streamlit)**
 
-4.  **Inicio del Procesamiento**: El `SnowflakeNLPAgent` (`src/agent/nlp_agent.py`) recibe la consulta.
-5.  **Construcción del Prompt**: La `SQLDatabaseChain` de LangChain combina la pregunta del usuario con el esquema de las tablas de la base de datos y una plantilla de prompt en español.
-6.  **Invocación del LLM**: Se envía el prompt completo a la API de Groq, que utiliza el modelo `llama-3.3-70b-versatile`.
-7.  **Generación de SQL**: El LLM, guiado por el prompt, genera la consulta SQL correspondiente.
+1.  **User Input**: The user types the question in the web app chat (`streamlit_app.py`).
+2.  **Input Processing**: The app immediately stores and displays the user’s message in the interface.
+3.  **Agent Call**: The system core is invoked: `agent.process_query(...)`.
+
+---
+
+#### **Step 2: NLP Agent Layer (LangChain + Groq)**
+
+4.  **Processing Start**: The `SnowflakeNLPAgent` (`src/agent/nlp_agent.py`) receives the query.
+5.  **Prompt Construction**: LangChain’s `SQLDatabaseChain` combines the user question with the database schema and a Spanish prompt template.
+6.  **LLM Invocation**: The complete prompt is sent to the Groq API using the `llama-3.3-70b-versatile` model.
+7.  **SQL Generation**: Guided by the prompt, the LLM generates the corresponding SQL query.
     ```sql
     SELECT c.c_name, SUM(o.o_totalprice) AS total_gastado
     FROM CUSTOMER c
@@ -251,114 +251,114 @@ Para entender cómo funciona la magia detrás de escena, sigamos el viaje de una
     ORDER BY total_gastado DESC
     LIMIT 10
     ```
-8.  **Extracción de SQL**: El agente extrae la consulta SQL generada de la respuesta de LangChain.
+8.  **SQL Extraction**: The agent extracts the generated SQL from the LangChain response.
 
 ---
 
-#### **Paso 3: Capa de Acceso a Datos (Snowflake)**
+#### **Step 3: Data Access Layer (Snowflake)**
 
-9.  **Ejecución de la Consulta**: El agente ejecuta la consulta SQL a través de la capa de conexión a la base de datos (`src/database/snowflake_conn.py`).
-10. **Procesamiento en Snowflake**: Snowflake recibe la consulta, la ejecuta en su motor de cómputo y devuelve los resultados. Por ejemplo:
+9.  **Query Execution**: The agent runs the SQL through the database connection layer (`src/database/snowflake_conn.py`).
+10. **Processing in Snowflake**: Snowflake receives the query, executes it in its compute engine, and returns the results. For example:
     ```
     [('Customer#0001', Decimal('555285.16')), ('Customer#0002', Decimal('544089.09')), ...]
     ```
-11. **Recepción de Resultados**: La aplicación recibe estos resultados (una lista de tuplas).
+11. **Results Reception**: The application receives these results (a list of tuples).
 
 ---
 
-#### **Paso 4: Formateo y Visualización (Streamlit)**
+#### **Step 4: Formatting and Visualization (Streamlit)**
 
-12. **Formateo Inteligente**: Una función de utilidad (`format_sql_result_to_dataframe`) convierte la lista de tuplas en un DataFrame de Pandas, aplicando formato de moneda y nombres de columna amigables.
-13. **Visualización Final**:
-    *   La aplicación muestra el DataFrame formateado en una tabla interactiva.
-    *   Muestra un contador debajo de la tabla: `📊 10 registros encontrados`.
-    *   La respuesta completa se guarda en el historial del chat.
-
----
-
-#### **Paso 5: Trazabilidad (Logs en UI)**
-
-14. **Panel de Logs**: Durante todo el proceso, se registran logs detallados que se muestran en el panel lateral, ofreciendo total transparencia sobre lo que hizo el sistema, desde la SQL que generó hasta los resultados que obtuvo.
-
-## 🔄 Actualizaciones Recientes (v2.4)
-
-### ✅ Novedades v2.4
-
-- **🔎 Intenciones de metadatos ampliadas**: respuestas directas (sin LLM) para:
-  - Base de datos actual (`CURRENT_DATABASE()`)
-  - Schema actual (`CURRENT_SCHEMA()`)
-  - Role actual (`CURRENT_ROLE()`)
-  - Warehouse actual (`CURRENT_WAREHOUSE()`)
-  - Soporta variantes/typos: "which/what/wich/current ..."
-- **📄 Vista previa de tablas por intención**: para frases tipo "show me agents table" o "show agents" se ejecuta directamente un preview seguro:
-  - Límite configurable por `.env` con `SHOW_TABLE_LIMIT` (por defecto `100`).
-  - Muestreo probabilístico opcional con `SHOW_TABLE_SAMPLE_PERCENT` (por defecto `0.0`, desactivado). Si se activa, se usa `SAMPLE(<percent>) LIMIT <limit>`.
-  - Logs detallados en el panel de procesos.
-- **🧱 UI robusta**: correcciones para cuando el backend retorna resultados como texto (lista de tuplas/string) y fechas tipo `datetime.date(...)`.
-  - Se parsean y normalizan para mostrar un DataFrame correcto.
-- **📋 Checkbox persistente "Show all columns"**: ahora el estado no desaparece y puedes alternar entre columnas clave y todas las columnas tanto en resultados nuevos como en el historial del chat.
+12. **Smart Formatting**: A utility function (`format_sql_result_to_dataframe`) converts the list of tuples into a Pandas DataFrame, applying currency formatting and friendly column names.
+13. **Final Visualization**:
+    *   The app shows the formatted DataFrame in an interactive table.
+    *   It displays a counter below the table: `📊 10 records found`.
+    *   The full response is saved in the chat history.
 
 ---
 
-## 🔄 Actualizaciones Recientes (v2.3)
+#### **Step 5: Traceability (Logs in UI)**
 
-### ✅ Nuevas Características Principales
+14. **Logs Panel**: Throughout the process, detailed logs are recorded and shown in the sidebar, providing full transparency from the generated SQL to the obtained results.
 
-- **🛠️ Soporte Ollama**: Integrado soporte completo para modelos locales (CodeLlama 7B-Instruct)
-- **🔄 Soporte Triple de LLM**: Groq/Llama + Google Gemini + Ollama con auto-detección y prioridad local
-- **📝 Limpieza SQL Avanzada**: Sistema robusto para manejar formato markdown de CodeLlama
-- **🏠 Procesamiento Local**: Opción de privacidad total con modelo local sin costo de APIs
+## 🔄 Recent Updates (v2.4)
 
-### ✅ Actualizaciones v2.2
+### ✅ What's New in v2.4
 
-- **🧠 Detección Híbrida**: Clasificación inteligente de consultas (BD vs ayuda vs fuera de contexto)
-- **🎯 Respuestas Educativas**: Guía completa con ejemplos para usuarios nuevos
-- **🚀 Redirección Amigable**: Respuestas amigables para consultas fuera de contexto
-- **📊 Información Dinámica**: Sidebar muestra el modelo LLM activo en tiempo real
+- **🔎 Expanded metadata intents**: direct answers (no LLM) for:
+  - Current database (`CURRENT_DATABASE()`)
+  - Current schema (`CURRENT_SCHEMA()`)
+  - Current role (`CURRENT_ROLE()`)
+  - Current warehouse (`CURRENT_WAREHOUSE()`)
+  - Supports variants/typos: "which/what/wich/current ..."
+- **📄 Intent-based table preview**: for phrases like "show me agents table" or "show agents" a safe preview is executed directly:
+  - Configurable limit via `.env` with `SHOW_TABLE_LIMIT` (default `100`).
+  - Optional probabilistic sampling with `SHOW_TABLE_SAMPLE_PERCENT` (default `0.0`, disabled). If enabled, uses `SAMPLE(<percent>) LIMIT <limit>`.
+  - Detailed logs in the process panel.
+- **🧱 Robust UI**: fixes for when the backend returns results as text (list of tuples/string) and dates like `datetime.date(...)`.
+  - Parsed and normalized to display a correct DataFrame.
+- **📋 Persistent "Show all columns" checkbox**: state now persists, and you can toggle between key columns and all columns for both new results and chat history.
 
-### ✅ Mejoras Anteriores (v2.1)
+---
 
-- **🎯 Formateo Inteligente**: Reconocimiento automático de tipos de consulta
-- **💹 Formato Monetario**: Visualización automática de valores financieros
-- **🔧 Parsing Robusto**: Manejo avanzado de objetos Decimal de Snowflake
-- **⚡ Modelo Actualizado**: Llama 3.3 70B Versatile + Gemini 1.5 Flash
-- **🖥️ UI Mejorada**: Tablas de ancho completo y contadores de registros
+## 🔄 Recent Updates (v2.3)
 
-### 🐛 Correcciones
+### ✅ New Main Features
 
-- ✅ Método obsoleto `__call__` reemplazado por `invoke`
-- ✅ Manejo robusto de errores DataFrame constructor
-- ✅ Parsing de strings con resultados SQL complejos
-- ✅ Configuración dinámica de proveedores LLM
-- ✅ Detección automática de modelos disponibles
+- **🛠️ Ollama Support**: Integrated full support for local models (CodeLlama 7B-Instruct)
+- **🔄 Triple LLM Support**: Groq/Llama + Google Gemini + Ollama with auto-detection and local-first preference
+- **📝 Advanced SQL Cleaning**: Robust system to handle CodeLlama markdown output
+- **🏠 Local Processing**: Full privacy option with local model and zero API cost
 
-## 🤝 Contribución
+### ✅ Updates in v2.2
 
-1. **Fork** el proyecto
-2. Crear branch para feature (`git checkout -b feature/AmazingFeature`)
-3. Commit cambios (`git commit -m 'Add AmazingFeature'`)
-4. Push al branch (`git push origin feature/AmazingFeature`)
-5. Abrir **Pull Request**
+- **🧠 Hybrid Detection**: Smart classification of queries (DB vs. help vs. out-of-scope)
+- **🎯 Educational Responses**: Comprehensive guidance with examples for new users
+- **🚀 Friendly Redirection**: Helpful responses for out-of-scope queries
+- **📊 Dynamic Info**: Sidebar shows the active LLM model in real time
 
-## 📝 Licencia
+### ✅ Earlier Improvements (v2.1)
 
-Este proyecto está bajo la Licencia MIT. Ver `LICENSE` para más detalles.
+- **🎯 Smart Formatting**: Automatic recognition of query types
+- **💹 Currency Formatting**: Automatic display of financial values
+- **🔧 Robust Parsing**: Advanced handling of Snowflake Decimal objects
+- **⚡ Updated Models**: Llama 3.3 70B Versatile + Gemini 1.5 Flash
+- **🖥️ Improved UI**: Full-width tables and record counters
 
-## 🆘 Soporte
+### 🐛 Fixes
 
-¿Problemas o preguntas?
+- ✅ Deprecated `__call__` method replaced with `invoke`
+- ✅ Robust handling of DataFrame constructor errors
+- ✅ Parsing of strings with complex SQL results
+- ✅ Dynamic configuration of LLM providers
+- ✅ Automatic detection of available models
+
+## 🤝 Contributing
+
+1. **Fork** the project
+2. Create a feature branch (`git checkout -b feature/AmazingFeature`)
+3. Commit changes (`git commit -m 'Add AmazingFeature'`)
+4. Push the branch (`git push origin feature/AmazingFeature`)
+5. Open a **Pull Request**
+
+## 📝 License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
+
+## 🆘 Support
+
+Issues or questions?
 
 - 📧 **Email**: soporte@empresa.com
 - 🐛 **Issues**: [GitHub Issues](https://github.com/tu-usuario/snowflake_nlp_agent_v2/issues)
-- 📚 **Documentación**: Ver `manual.md` para detalles técnicos
+- 📚 **Documentation**: See `manual.md` for technical details
 
-## 🙏 Agradecimientos
+## 🙏 Acknowledgments
 
-- **Streamlit** por el framework web increíble
-- **LangChain** por la orquestación de LLM
-- **Groq** por los servicios de LLM rápidos
-- **Snowflake** por la plataforma de datos robusta
+- **Streamlit** for the amazing web framework
+- **LangChain** for LLM orchestration
+- **Groq** for fast LLM services
+- **Snowflake** for the robust data platform
 
 ---
 
-**Desarrollado con ❤️ usando Python y tecnologías modernas de IA**
+**Built with ❤️ using Python and modern AI technologies**
