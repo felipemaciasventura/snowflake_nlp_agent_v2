@@ -22,15 +22,15 @@
 │                                                                             │
 │  ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐         │
 │  │  🤖 Groq LLM    │    │  🔗 LangChain   │    │  📝 SQL Prompt  │         │
-│  │ (Llama 3.3 70B) │◄──►│ SQLDatabaseChain│◄──►│   (Español)     │         │
+│  │ (Llama 3.3 70B) │◄──►│ SQLDatabaseChain│◄──►│   (English)     │         │
 │  └─────────────────┘    └─────────────────┘    └─────────────────┘         │
 │                                                                             │
 │  Flujo:                                                                     │
-│  1️⃣ Recibe pregunta en español                                              │
-│  2️⃣ Genera SQL usando LLM + prompt personalizado                           │
-│  3️⃣ Extrae SQL de intermediate_steps                                        │
-│  4️⃣ Ejecuta SQL directamente en Snowflake                                  │
-│  5️⃣ Registra pasos para trazabilidad                                       │
+│  1️⃣ Receives question in English                                               │
+│  2️⃣ Generates SQL using LLM + custom prompt                                   │
+│  3️⃣ Extracts SQL from intermediate_steps                                       │
+│  4️⃣ Executes SQL directly in Snowflake                                        │
+│  5️⃣ Logs steps for traceability                                               │
 └─────────────────────────────────────────────────────────────────────────────┘
                                     │ sql_query
                                     ▼
@@ -81,7 +81,7 @@
 │  🔧 Funciones de formateo:                                                  │
 │  ├─ parse_sql_result_string() - Parser strings → listas                    │
 │  ├─ format_sql_result_to_dataframe() - Formateo inteligente                │
-│  └─ Detección automática de tipos de consulta                              │
+│  └─ Automatic detection of query types                                      │
 │                                                                             │
 │  🎯 Tipos de formateo soportados:                                           │
 │  ├─ 💰 Pedidos con valores (formato monetario)                              │
@@ -121,9 +121,9 @@ Usuario escribe: "¿Cuáles son los 10 pedidos con mayor valor?"
 ```
 SnowflakeNLPAgent.process_query()
     │
-    ├─ 🔍 Log: "Procesando consulta"
+    ├─ 🔍 Log: "Processing query"
     │
-    ├─ 🤖 sql_chain.invoke(pregunta_español)
+    ├─ 🤖 sql_chain.invoke(english_question)
     │   │
     │   ├─ Groq LLM genera SQL usando prompt personalizado
     │   ├─ Template incluye schema de tablas Snowflake
@@ -144,15 +144,15 @@ SnowflakeNLPAgent.process_query()
 
 ### 3. 🎨 Formateo y Visualización
 ```
-format_sql_result_to_dataframe(datos, sql, pregunta)
+format_sql_result_to_dataframe(data, sql, question)
     │
-    ├─ 🔍 Detecta tipo: "mayor valor" → formato pedidos
+    ├─ 🔍 Detects type: "highest value" → orders format
     │
-    ├─ 💰 Aplica formato monetario: "$555,285.16"
+    ├─ 💰 Applies monetary formatting: "$555,285.16"
     │
-    ├─ 📋 Crea DataFrame con columnas amigables:
+    ├─ 📋 Creates DataFrame with friendly columns:
     │   │
-    │   └─ ['ID Pedido', 'Valor Total']
+    │   └─ ['Order ID', 'Total Value']
     │
     └─ 📊 st.dataframe(df, use_container_width=True)
 ```
@@ -167,7 +167,7 @@ format_sql_result_to_dataframe(datos, sql, pregunta)
 | **🏭 Factory** | Connection string building | `snowflake_conn.py` |
 | **🔍 Observer** | Logging system integration | Todos los módulos |
 | **📦 Singleton** | Global config, connection instances | `config.py`, `helpers.py` |
-| **🎯 Strategy** | Formateo inteligente por tipo consulta | `streamlit_app.py` |
+| **🎯 Strategy** | Intelligent formatting by query type | `streamlit_app.py` |
 | **🔒 Context Manager** | Database connections (`with` statements) | `snowflake_conn.py` |
 
 ### 🌊 Arquitectura por Capas
@@ -246,7 +246,7 @@ format_sql_result_to_dataframe(datos, sql, pregunta)
 
 - ✅ **Variables de entorno** para credenciales sensibles
 - ✅ **Validación de SQL** antes de ejecución  
-- ✅ **LIMIT automático** en consultas para evitar sobrecargas
+- ✅ **Automatic LIMIT** in queries to avoid overloads
 - ✅ **Connection pooling** controlado (NullPool)
 - ✅ **Error handling** robusto en cada capa
 

@@ -1,0 +1,225 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "snowflake-nlp-agent-v2"
+version = "2.5.0"
+description = "An intelligent web application that enables natural language queries to Snowflake databases using LangChain with triple LLM support"
+readme = "README.md"
+license = {file = "LICENSE"}
+authors = [
+    {name = "Felipe Macias", email = "felipemacias@example.com"},
+]
+maintainers = [
+    {name = "Felipe Macias", email = "felipemacias@example.com"},
+]
+keywords = [
+    "snowflake",
+    "nlp",
+    "sql",
+    "langchain",
+    "streamlit",
+    "llm",
+    "groq",
+    "gemini",
+    "ollama",
+    "database",
+    "text-to-sql",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Data Scientists",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Database",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.8"
+dependencies = [
+    "streamlit>=1.28.1",
+    "langchain>=0.1.12",
+    "langchain-community>=0.0.20",
+    "langchain-groq>=0.1.1",
+    "langchain-google-genai>=1.0.1",
+    "google-generativeai>=0.3.0",
+    "langchain-experimental>=0.0.54",
+    "snowflake-connector-python>=3.6.0",
+    "snowflake-sqlalchemy>=1.5.1",
+    "python-dotenv>=1.0.1",
+    "pandas>=2.2.0",
+    "plotly>=5.18.0",
+    "sqlparse>=0.4.4",
+    "pydantic>=2.5.3",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "black>=23.0.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+    "pre-commit>=3.0.0",
+]
+test = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "pytest-mock>=3.10.0",
+]
+docs = [
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.20.0",
+]
+ollama = [
+    "langchain-ollama>=0.2.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/felipemacias/snowflake_nlp_agent_v2"
+Documentation = "https://github.com/felipemacias/snowflake_nlp_agent_v2#readme"
+Repository = "https://github.com/felipemacias/snowflake_nlp_agent_v2"
+"Bug Tracker" = "https://github.com/felipemacias/snowflake_nlp_agent_v2/issues"
+Changelog = "https://github.com/felipemacias/snowflake_nlp_agent_v2/blob/main/CHANGELOG.md"
+
+[project.scripts]
+snowflake-nlp-agent = "streamlit_app:main"
+
+[tool.setuptools]
+package-dir = {"" = "."}
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["src*"]
+exclude = ["tests*", "venv*", "__pycache__*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.txt", "*.yaml", "*.yml", "*.json"]
+
+# Black code formatter configuration
+[tool.black]
+line-length = 88
+target-version = ['py38', 'py39', 'py310', 'py311', 'py312', 'py313']
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+  # directories
+  \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | venv
+  | _build
+  | buck-out
+  | build
+  | dist
+)/
+'''
+
+# MyPy type checker configuration
+[tool.mypy]
+python_version = "3.8"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+disallow_incomplete_defs = true
+check_untyped_defs = true
+disallow_untyped_decorators = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+warn_unreachable = true
+strict_equality = true
+show_error_codes = true
+
+[[tool.mypy.overrides]]
+module = [
+    "streamlit.*",
+    "snowflake.*",
+    "langchain.*",
+    "plotly.*",
+    "sqlparse.*",
+]
+ignore_missing_imports = true
+
+# Pytest configuration
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "--strict-markers",
+    "--strict-config",
+    "--cov=src",
+    "--cov-report=term-missing",
+    "--cov-report=html",
+    "--cov-report=xml",
+]
+testpaths = ["tests"]
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: marks tests as integration tests",
+    "unit: marks tests as unit tests",
+]
+
+# Coverage configuration
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/venv/*",
+    "*/__pycache__/*",
+    "*/migrations/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if settings.DEBUG",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if 0:",
+    "if __name__ == .__main__.:",
+    "class .*\\bProtocol\\):",
+    "@(abc\\.)?abstractmethod",
+]
+
+# Flake8 configuration
+[tool.flake8]
+max-line-length = 88
+extend-ignore = [
+    "E203",  # whitespace before ':'
+    "E501",  # line too long (handled by black)
+    "W503",  # line break before binary operator
+]
+exclude = [
+    ".git",
+    "__pycache__",
+    "venv",
+    ".venv",
+    "build",
+    "dist",
+    "*.egg-info",
+]
+per-file-ignores = [
+    "__init__.py:F401",  # imported but unused
+    "test_*.py:F401,F811",  # test files may have unused imports
+]
