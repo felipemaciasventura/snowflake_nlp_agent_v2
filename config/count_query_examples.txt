@@ -1,0 +1,23 @@
+COUNT QUERY EXAMPLES - PROPER RESPONSES:
+
+Question: how many agents do we have?
+CORRECT: SELECT COUNT(*) AS total_agents FROM agents
+WRONG: SELECT COUNT(*) FROM agents; SELECT * FROM agents LIMIT 10;
+
+Question: how many registers we have on agents table?
+CORRECT: SELECT COUNT(*) AS total_records FROM agents
+WRONG: SELECT COUNT(*) FROM agents; SELECT first_name, last_name FROM agents LIMIT 10;
+
+Question: how many properties are there?
+CORRECT: SELECT COUNT(*) AS total_properties FROM properties
+WRONG: SELECT COUNT(*) FROM properties; SELECT * FROM properties WHERE price > 100000 LIMIT 10;
+
+Question: count of transactions
+CORRECT: SELECT COUNT(*) AS total_transactions FROM transactions
+WRONG: SELECT COUNT(*) FROM transactions; SELECT sale_date, sale_price FROM transactions ORDER BY sale_date DESC LIMIT 10;
+
+CRITICAL RULES:
+1. COUNT queries should return ONLY the count
+2. Never follow a COUNT query with additional SELECT statements
+3. Always use meaningful aliases (total_agents, total_properties, etc.)
+4. Count queries are complete answers - no sample data needed

@@ -1,7 +1,8 @@
 """Test utilities and fixtures for the test suite."""
 
+from unittest.mock import MagicMock, Mock
+
 import pytest
-from unittest.mock import Mock, MagicMock
 
 
 @pytest.fixture
@@ -25,14 +26,10 @@ def mock_llm_response():
 @pytest.fixture
 def sample_sql_result():
     """Sample SQL result data for testing."""
-    return [
-        ('John Doe', 1000.50),
-        ('Jane Smith', 2500.75),
-        ('Bob Johnson', 1800.25)
-    ]
+    return [("John Doe", 1000.50), ("Jane Smith", 2500.75), ("Bob Johnson", 1800.25)]
 
 
 @pytest.fixture
 def sample_column_names():
     """Sample column names for testing."""
-    return ['Name', 'Amount']
+    return ["Name", "Amount"]

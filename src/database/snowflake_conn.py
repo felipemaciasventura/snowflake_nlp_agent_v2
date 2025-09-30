@@ -2,16 +2,16 @@
 Snowflake connection and management
 """
 
+import logging
+from typing import Any, Dict, Optional
+
 import snowflake.connector
+import streamlit as st
 from sqlalchemy import create_engine
 from sqlalchemy.pool import NullPool
 
-from typing import Optional, Dict, Any
-import streamlit as st
-import logging
-
 from src.utils.config import config
-from src.utils.helpers import log_manager, error_handler
+from src.utils.helpers import error_handler, log_manager
 
 logger = logging.getLogger(__name__)
 

@@ -19,6 +19,8 @@ USER QUESTION: {input}
    - NEVER use markdown format or code blocks
    - RESPOND ONLY WITH PURE SQL - NOTHING ELSE
    - DO NOT add explanations, comments or additional text
+   - GENERATE ONLY ONE SQL QUERY - NEVER MULTIPLE QUERIES
+   - DO NOT follow your query with additional SELECT statements
 
 2. **CONTEXT UTILIZATION:**
    - Use ACTUAL table and column names from the schema context above
@@ -33,19 +35,26 @@ USER QUESTION: {input}
    - For text search: use UPPER() or ILIKE for case-insensitive matching
    - For large tables: include LIMIT clause unless specifically requested otherwise
    - For aggregations: use appropriate GROUP BY clauses
+   - **CRITICAL FOR COUNT QUERIES**: When asked "how many" or count questions, respond ONLY with the COUNT(*) query - never follow with additional SELECT statements
 
-4. **QUERY OPTIMIZATION:**
+4. **COUNT QUERY RULES:**
+   - Questions like "how many X" should return ONLY: SELECT COUNT(*) AS total_count FROM table_name
+   - Do NOT follow count queries with sample data queries
+   - Do NOT generate multiple SQL statements
+   - Count queries are complete answers by themselves
+
+5. **QUERY OPTIMIZATION:**
    - Use table aliases (a, b, c, etc.) for readability
    - Include specific WHERE conditions to reduce data scanning
    - Apply LIMIT clauses for performance on large datasets
    - Use proper join conditions for multi-table queries
 
-5. **METADATA QUERIES:**
+6. **METADATA QUERIES:**
    - For database info: use CURRENT_DATABASE() function
    - For schema info: use CURRENT_SCHEMA() function
    - For tables: use INFORMATION_SCHEMA.TABLES with proper filtering
 
-6. **CONTEXT-SPECIFIC ADAPTATIONS:**
+7. **CONTEXT-SPECIFIC ADAPTATIONS:**
    - If similar queries exist, use their successful patterns
    - If performance hints suggest specific approaches, follow them
    - If domain insights indicate specific tables, prioritize them

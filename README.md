@@ -30,22 +30,25 @@ An intelligent web application built with Streamlit that enables natural languag
 - **💬 Intuitive Chat Interface**: Natural conversation with your database
 - **🧠 Hybrid NLP Processing**: Smart intent detection (DB vs. help vs. out-of-scope)
 - **🔄 Triple LLM Support**: Works with Groq/Llama, Google Gemini, and Ollama (local) with auto-detection
-- **📊 Smart Visualization**: Automatic result formatting with interactive tables
+- **📊 Smart Visualization**: Automatic result formatting with interactive tables and proper column names
 - **🔒 Secure Connection**: Robust Snowflake integration using encrypted credentials
 - **🎯 Educational Answers**: Helpful guidance with examples and friendly redirection
 - **🎨 Modern UI**: Responsive design with Streamlit and interactive components
+- **🛡️ Robust SQL Extraction**: Advanced system for handling complex LLM responses and data extraction
 
 ### **Enhanced Context System**
 - **🔍 Dynamic Schema Discovery**: Comprehensive table analysis with metadata
 - **📚 Query Learning**: History tracking and success pattern analysis
 - **🎯 Intelligent Context**: Multi-source integration with quality validation
 - **⚡ Performance Optimization**: Query optimization hints and caching
+- **🔢 Smart Query Detection**: Direct handling for COUNT, metadata, and complex aggregation queries
 
 ### **Professional Development**
 - **📦 Modern Python Packaging**: PEP 518/621 compliant with pyproject.toml
 - **🛠️ Automated Workflows**: 15+ Make commands for development tasks
 - **🧪 Testing Infrastructure**: pytest with fixtures and CI/CD pipeline
 - **🔍 Code Quality**: Black, flake8, mypy, pre-commit hooks
+- **🔧 Robust Architecture**: Enterprise-grade error handling and fallback mechanisms
 
 ---
 

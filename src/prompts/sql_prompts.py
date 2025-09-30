@@ -75,20 +75,22 @@ Rules:
 PROMPT_VARIATIONS = {
     "gemini": SNOWFLAKE_SQL_PROMPT,
     "groq": SNOWFLAKE_SQL_PROMPT,
-    "ollama": GENERIC_SQL_PROMPT  # Simpler for local models
+    "ollama": GENERIC_SQL_PROMPT,  # Simpler for local models
 }
 
 # Metadata query templates
 METADATA_QUERIES = {
     "database": "SELECT CURRENT_DATABASE() AS database_name",
-    "schema": "SELECT CURRENT_SCHEMA() AS schema_name", 
+    "schema": "SELECT CURRENT_SCHEMA() AS schema_name",
     "tables": "SELECT TABLE_NAME, TABLE_TYPE FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = CURRENT_SCHEMA() ORDER BY TABLE_NAME",
-    "version": "SELECT CURRENT_VERSION() AS snowflake_version"
+    "version": "SELECT CURRENT_VERSION() AS snowflake_version",
 }
+
 
 def get_prompt_for_provider(provider: str) -> str:
     """Get appropriate prompt template for LLM provider"""
     return PROMPT_VARIATIONS.get(provider, GENERIC_SQL_PROMPT)
+
 
 def get_metadata_query(query_type: str) -> str:
     """Get predefined metadata query"""

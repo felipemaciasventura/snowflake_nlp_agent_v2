@@ -4,15 +4,51 @@
 
 ### 📊 General Statistics
 - **🕒 Development period**: December 2024 - September 2025
-- **🔢 Total commits**: 6+ major commits
-- **📁 Main files modified**: 15+ files
-- **🚀 Current version**: v2.5 (Complete Project Modernization)
+- **🔢 Total commits**: 7+ major commits
+- **📁 Main files modified**: 20+ files
+- **🚀 Current version**: v2.6 (Robust SQL Result Extraction)
 
 ---
 
 ## 🕰️ Detailed Timeline
 
-### 🎯 **Commit #6** - `NEW` (HEAD -> metadata-query-improvements)
+### 🎯 **Commit #7** - `NEW` (HEAD -> robust-sql-extraction)
+**📅 Date**: September 30, 2025  
+**🏷️ Type**: `feat` - Robust SQL Result Extraction System  
+**📝 Title**: `feat(v2.6): Implement robust SQL result extraction and fix multiple LLM query issues`
+
+#### ✅ Major Features Implemented:
+- **🔍 Robust SQL/Data Extractor**: New `extract_sql_and_data_from_chain_result()` method
+- **🛡️ Anti-Multiple Query System**: Prevents LLM "Answer" field interference
+- **📊 Smart intermediate_steps Parser**: Handles dict/str/tuple formats from LangChain
+- **📋 CTE Column Extraction**: Correct column name extraction from Common Table Expressions
+- **🔢 Enhanced COUNT Queries**: Direct detection and handling for count/aggregation queries
+- **🎯 String Data Parsing**: Parses data from string format in intermediate_steps
+
+#### 🔧 Technical Improvements:
+- **SQL Cleaning**: Enhanced `clean_sql_response()` method with comprehensive formatting
+- **Column Intelligence**: Fixed `extract_column_names_from_sql()` for CTEs using LAST SELECT
+- **Data Validation**: Robust data type detection and conversion
+- **Error Handling**: Comprehensive fallback mechanisms for edge cases
+- **Performance**: Optimized extraction with early breaking on first valid result
+
+#### 🐛 Critical Bug Fixes:
+- **Multiple SQL Generation**: LLM generating correct query + incorrect "Answer" query
+- **Data Loss in UI**: Correct data in logs but "No results found" in interface  
+- **Column Name Issues**: Generic "Column 1, 2, 3" instead of meaningful names
+- **intermediate_steps Format**: Unexpected dict/string structure instead of tuples
+- **CTE Handling**: Extracting columns from wrong SELECT in Common Table Expressions
+
+#### 📊 Supported Query Types:
+- ✅ **COUNT Queries**: "how many agents do we have?" → Direct numeric result
+- ✅ **Complex Aggregations**: "most expensive properties by city" → Formatted table
+- ✅ **Metadata Queries**: "what database are we using?" → System information
+- ✅ **Table Operations**: "show me all tables" → Schema exploration
+- ✅ **Multi-table JOINs**: Advanced relationship queries with proper column names
+
+---
+
+### 🎯 **Commit #6** - `feat(v2.5)` - Complete Project Modernization  
 **📅 Date**: September 2025  
 **🏷️ Type**: `feat` - Complete Project Modernization  
 **📝 Title**: `Complete project modernization with pyproject.toml, CI/CD, and development automation`
