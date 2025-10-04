@@ -196,8 +196,22 @@ class SnowflakeNLPAgent:
                         )  # Console log
                         try:
                             import ast
+                            import datetime
 
-                            parsed_data = ast.literal_eval(step.strip())
+                            # First try with ast.literal_eval (safer)
+                            try:
+                                parsed_data = ast.literal_eval(step.strip())
+                            except Exception:
+                                # If ast.literal_eval fails, try eval with safe namespace for datetime objects
+                                safe_dict = {
+                                    '__builtins__': {},
+                                    'datetime': datetime,
+                                    'date': datetime.date,
+                                    'time': datetime.time,
+                                    'timedelta': datetime.timedelta,
+                                }
+                                parsed_data = eval(step.strip(), safe_dict)
+                            
                             if (
                                 isinstance(parsed_data, list)
                                 and parsed_data
@@ -211,6 +225,7 @@ class SnowflakeNLPAgent:
                             print(
                                 f"❌ EXTRACTOR: Failed to parse data string in step {i+1}: {e}"
                             )  # Console log
+                            print(f"🔍 EXTRACTOR: Data string preview: {step[:200]}...")  # Debug info
 
                 # Original tuple handling (kept for compatibility)
                 elif isinstance(step, tuple) and len(step) >= 2:
@@ -283,8 +298,22 @@ class SnowflakeNLPAgent:
                 if "[(" in possible_data and ")]" in possible_data:
                     try:
                         import ast
+                        import datetime
 
-                        parsed_data = ast.literal_eval(possible_data)
+                        # First try with ast.literal_eval (safer)
+                        try:
+                            parsed_data = ast.literal_eval(possible_data)
+                        except Exception:
+                            # If ast.literal_eval fails, try eval with safe namespace for datetime objects
+                            safe_dict = {
+                                '__builtins__': {},
+                                'datetime': datetime,
+                                'date': datetime.date,
+                                'time': datetime.time,
+                                'timedelta': datetime.timedelta,
+                            }
+                            parsed_data = eval(possible_data, safe_dict)
+                        
                         if isinstance(parsed_data, list) and parsed_data:
                             chain_data = parsed_data
                             print(
@@ -294,6 +323,7 @@ class SnowflakeNLPAgent:
                         print(
                             f"❌ EXTRACTOR: Failed to parse result['result']: {e}"
                         )  # Console log
+                        print(f"🔍 EXTRACTOR: Result data preview: {possible_data[:200]}...")  # Debug info
 
             # If result contains the data directly
             elif isinstance(possible_data, list) and possible_data:

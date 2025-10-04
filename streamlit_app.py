@@ -12,6 +12,9 @@ from src.database.snowflake_conn import SnowflakeConnection
 # Regex constants
 DECIMAL_REGEX = r"Decimal\('([^']+)'\)"
 
+# Input validation regex - Allow letters, numbers, spaces, and basic punctuation
+ALLOWED_INPUT_PATTERN = r"^[a-zA-Z0-9\s\.,\?\!''-]+$"
+
 # Load environment variables
 load_dotenv()
 
@@ -544,8 +547,11 @@ def parse_sql_result_string(result_string):
     return result_string
 
 
-def extract_column_names_from_sql(sql_query):
-    """Extract meaningful column names from SQL query using aliases or column names."""
+def extract_column_names_from_sql(sql_query, db_connection=None):
+    """Extract meaningful column names from SQL query using aliases or column names.
+    
+    For SELECT * queries, if db_connection is provided, attempts to get actual column names from table.
+    """
     import re
 
     # If it's already a list of column names, return it directly
@@ -573,6 +579,41 @@ def extract_column_names_from_sql(sql_query):
 
         # Handle SELECT * case
         if select_part.strip() == "*":
+            # Try to get actual column names from table if we have db connection
+            if db_connection is not None:
+                # Extract table name from the FROM clause
+                from_match = re.search(
+                    r"FROM\s+(\w+)", sql_clean, re.IGNORECASE
+                )
+                if from_match:
+                    table_name = from_match.group(1)
+                    try:
+                        # Query the database for column names
+                        column_query = f"""
+                        SELECT COLUMN_NAME 
+                        FROM INFORMATION_SCHEMA.COLUMNS 
+                        WHERE TABLE_NAME = '{table_name}' 
+                        ORDER BY ORDINAL_POSITION
+                        """
+                        result = db_connection.run(column_query)
+                        if result:
+                            # Extract column names and make them readable
+                            column_names = []
+                            for row in result:
+                                if isinstance(row, (tuple, list)) and len(row) > 0:
+                                    col_name = str(row[0]).replace("_", " ").title()
+                                    column_names.append(col_name)
+                                elif isinstance(row, str):
+                                    col_name = row.replace("_", " ").title()
+                                    column_names.append(col_name)
+                            
+                            if column_names:
+                                print(f"✅ COLUMN EXTRACTOR: Found {len(column_names)} columns for table {table_name}")
+                                return column_names
+                    except Exception as e:
+                        print(f"❌ COLUMN EXTRACTOR: Failed to get columns for {table_name}: {e}")
+            
+            # Fallback: return None for SELECT * when we can't get actual column names
             return None
 
         # Split by comma to get individual column expressions
@@ -640,7 +681,7 @@ def extract_column_names_from_sql(sql_query):
         return None
 
 
-def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
+def format_sql_result_to_dataframe(data, sql_query="", user_question="", db_connection=None):
     """Convert SQL results into a well-formatted DataFrame"""
     from decimal import Decimal
 
@@ -694,7 +735,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             return [str(n).replace("_", " ").title() for n in names]
 
         # Pre-extract column names from SQL if possible
-        extracted_column_names = extract_column_names_from_sql(sql_query)
+        extracted_column_names = extract_column_names_from_sql(sql_query, db_connection)
 
         # Debug logging for column extraction
         if hasattr(st, "session_state") and hasattr(
@@ -899,7 +940,7 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question=""):
             if isinstance(data, list) and len(data) > 0:
                 if isinstance(data[0], (tuple, list)):
                     # List of tuples/lists - try to extract column names from SQL
-                    extracted_column_names = extract_column_names_from_sql(sql_query)
+                    extracted_column_names = extract_column_names_from_sql(sql_query, db_connection)
                     num_cols = len(data[0]) if data[0] else 1
 
                     if (
@@ -1096,8 +1137,13 @@ def _render_successful_result(result, prompt):
         # Get the SQL that was executed for column name extraction
         executed_sql = result.get("sql_query", "")
 
+        # Get database connection for column name extraction
+        db_connection = None
+        if hasattr(st, "session_state") and hasattr(st.session_state, "agent") and st.session_state.agent:
+            db_connection = getattr(st.session_state.agent, "db", None)
+
         # Format the actual data into a DataFrame
-        df = format_sql_result_to_dataframe(actual_data, executed_sql, prompt)
+        df = format_sql_result_to_dataframe(actual_data, executed_sql, prompt, db_connection)
 
         # Intelligent column selection when there are too many columns
         def _norm(name: str) -> str:
@@ -1189,15 +1235,81 @@ def _render_error_result(error_text):
     _append_assistant_message(error_text)
 
 
+def validate_user_input(user_input):
+    """Validate user input to allow only safe characters.
+    
+    Allows:
+    - Letters (a-z, A-Z)
+    - Numbers (0-9) 
+    - Spaces
+    - Basic punctuation: . , ? ! ' " -
+    
+    Returns:
+        tuple: (is_valid: bool, cleaned_input: str, error_message: str)
+    """
+    if not user_input or not user_input.strip():
+        return False, "", "❌ Please enter a valid query."
+    
+    # Remove leading/trailing whitespace
+    cleaned_input = user_input.strip()
+    
+    # Check length
+    if len(cleaned_input) < 3:
+        return False, cleaned_input, "❌ Query too short. Please enter at least 3 characters."
+    
+    if len(cleaned_input) > 500:
+        return False, cleaned_input, "❌ Query too long. Please limit your query to 500 characters."
+    
+    # Check for allowed characters
+    if not re.match(ALLOWED_INPUT_PATTERN, cleaned_input):
+        # Find the first disallowed character for better error message
+        disallowed_chars = set()
+        for char in cleaned_input:
+            if not re.match(r"[a-zA-Z0-9\s\.,\?\!''-]", char):
+                disallowed_chars.add(char)
+        
+        if disallowed_chars:
+            chars_str = "', '".join(sorted(disallowed_chars))
+            return False, cleaned_input, f"❌ Invalid characters detected: '{chars_str}'. Please use only letters, numbers, spaces, and basic punctuation (.,?!'-)"
+    
+    # Check for potential SQL injection patterns (basic detection)
+    dangerous_patterns = [
+        r'\bDROP\b', r'\bDELETE\b', r'\bUPDATE\b', r'\bINSERT\b', 
+        r'\bALTER\b', r'\bCREATE\b', r'\bTRUNCATE\b', r'--', r'/\*', r'\*/',
+        r';.*$', r'\bunion\b.*\bselect\b'
+    ]
+    
+    for pattern in dangerous_patterns:
+        if re.search(pattern, cleaned_input, re.IGNORECASE):
+            return False, cleaned_input, "❌ Query contains potentially unsafe content. Please use natural language queries only."
+    
+    return True, cleaned_input, ""
+
+
 def process_user_input(prompt):
     """Process user input with hybrid detection.
 
     Hybrid flow:
-    1. Detect query type (DB, help, out of context)
-    2. Respond appropriately according to type
-    3. For DB queries: invoke NLP agent → SQL → execution
-    4. For others: show educational/redirect responses
+    1. Validate input for safety
+    2. Detect query type (DB, help, out of context)
+    3. Respond appropriately according to type
+    4. For DB queries: invoke NLP agent → SQL → execution
+    5. For others: show educational/redirect responses
     """
+    # Validate user input first
+    is_valid, cleaned_prompt, error_message = validate_user_input(prompt)
+    
+    if not is_valid:
+        # Show validation error without adding to session state
+        with st.chat_message("assistant"):
+            st.error(error_message)
+            # Add a helpful message
+            st.info("💡 **Tip:** Use natural language like:\n- 'Show me the top 10 customers'\n- 'What are the sales for 2023?'\n- 'How many orders do we have?'")
+        return
+    
+    # Use cleaned prompt for processing
+    prompt = cleaned_prompt
+    
     # Add user message
     st.session_state.messages.append({"role": "user", "content": prompt})
 
@@ -1303,7 +1415,7 @@ def main():
         display_logs_panel()
 
     # User input (outside column layout)
-    if prompt := st.chat_input("Write your query in English..."):
+    if prompt := st.chat_input("Ask in English (letters, numbers, basic punctuation only): What data do you need?"):
         process_user_input(prompt)
 
 
