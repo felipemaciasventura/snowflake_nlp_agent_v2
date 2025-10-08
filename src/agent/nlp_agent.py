@@ -10,6 +10,7 @@ except ImportError:
 
 import time
 from typing import Any, Dict, Optional
+from decimal import Decimal
 
 import pandas as pd
 import streamlit as st
@@ -152,29 +153,54 @@ class SnowflakeNLPAgent:
                         f"📋 EXTRACTOR: Step {i+1} DICT - Keys: {list(step.keys())}"
                     )  # Console log
 
-                    # Check for SQL in dict
-                    for key in ["sql_cmd", "query", "sql", "input"]:
+                    # Check for SQL in dict - but skip 'input' key as it contains user question
+                    found_sql_in_dict = False
+                    for key in ["sql_cmd", "query", "sql"]:  # Removed 'input' as it's user question
                         if key in step and isinstance(step[key], str):
                             potential_sql = step[key]
+                            # Additional validation: make sure it's actual SQL, not user question
+                            cleaned_potential = potential_sql.strip()
                             if (
-                                "SELECT" in potential_sql.upper()
-                                or "WITH" in potential_sql.upper()
+                                ("SELECT" in potential_sql.upper() or "WITH" in potential_sql.upper()) and
+                                (cleaned_potential.upper().startswith(("SELECT", "WITH")) and 
+                                 ("FROM" in cleaned_potential.upper() or "(" in cleaned_potential))  # Basic SQL structure check
                             ):
                                 print(
                                     f"✅ EXTRACTOR: Found SQL in dict['{key}'] - {potential_sql[:60]}..."
                                 )  # Console log
                                 if sql_query == "N/A":
                                     sql_query = potential_sql
+                                    
+                                    # Try to execute this SQL immediately to get data
+                                    try:
+                                        print(f"🚀 EXTRACTOR: Attempting immediate execution of SQL from dict['{key}']")
+                                        cleaned_sql = self.clean_sql_response(potential_sql)
+                                        if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "WITH", "SHOW", "DESCRIBE")):
+                                            immediate_result = self.db.run(cleaned_sql)
+                                            if immediate_result:
+                                                chain_data = immediate_result
+                                                print(f"✅ EXTRACTOR: Immediate execution successful - {len(immediate_result) if hasattr(immediate_result, '__len__') else 'N/A'} rows")
+                                                found_sql_in_dict = True
+                                                break
+                                    except Exception as e:
+                                        print(f"⚠️ EXTRACTOR: Immediate execution failed: {e}")
+                                        # Continue to try other methods
+                            elif "SELECT" in potential_sql.upper() or "WITH" in potential_sql.upper():
+                                print(f"⚠️ EXTRACTOR: Dict['{key}'] contains SELECT but doesn't look like valid SQL: {potential_sql[:100]}")
+                    
+                    if found_sql_in_dict and chain_data:
+                        break
 
-                    # Check for data in dict
-                    for key in ["sql_result", "result", "data", "output"]:
-                        if key in step and step[key] is not None:
-                            potential_data = step[key]
-                            print(
-                                f"✅ EXTRACTOR: Found data in dict['{key}'] - Type: {type(potential_data)}, Preview: {str(potential_data)[:60]}..."
-                            )  # Console log
-                            if chain_data is None:
-                                chain_data = potential_data
+                    # Check for data in dict (only if we didn't already find it)
+                    if not chain_data:
+                        for key in ["sql_result", "result", "data", "output"]:
+                            if key in step and step[key] is not None:
+                                potential_data = step[key]
+                                print(
+                                    f"✅ EXTRACTOR: Found data in dict['{key}'] - Type: {type(potential_data)}, Preview: {str(potential_data)[:60]}..."
+                                )  # Console log
+                                if chain_data is None:
+                                    chain_data = potential_data
 
                 # Handle string steps (might contain SQL or DATA)
                 elif isinstance(step, str):
@@ -182,15 +208,36 @@ class SnowflakeNLPAgent:
                         f"📋 EXTRACTOR: Step {i+1} STRING - Preview: {step[:60]}..."
                     )  # Console log
 
-                    # Check for SQL in string
+                    # Check for SQL in string - but validate it's actually SQL not user question
                     if (
                         "SELECT" in step.upper() or "WITH" in step.upper()
                     ) and sql_query == "N/A":
-                        print(f"✅ EXTRACTOR: Found SQL in string step")  # Console log
-                        sql_query = step
+                        # Additional validation: make sure it's actual SQL, not user question
+                        cleaned_step = step.strip()
+                        if (cleaned_step.upper().startswith(("SELECT", "WITH")) and 
+                            ("FROM" in cleaned_step.upper() or "(" in cleaned_step)):  # Basic SQL structure check
+                            print(f"✅ EXTRACTOR: Found SQL in string step")  # Console log
+                            sql_query = step
+                            
+                            # Try to execute this SQL immediately to get data
+                            try:
+                                print(f"🚀 EXTRACTOR: Attempting immediate execution of SQL from step {i+1}")
+                                cleaned_sql = self.clean_sql_response(step)
+                                if cleaned_sql and cleaned_sql.upper().startswith(("SELECT", "WITH", "SHOW", "DESCRIBE")):
+                                    immediate_result = self.db.run(cleaned_sql)
+                                    if immediate_result:
+                                        chain_data = immediate_result
+                                        print(f"✅ EXTRACTOR: Immediate execution successful - {len(immediate_result) if hasattr(immediate_result, '__len__') else 'N/A'} rows")
+                                        # Break here to use the first working SQL
+                                        break
+                            except Exception as e:
+                                print(f"⚠️ EXTRACTOR: Immediate execution failed: {e}")
+                                # Continue to try other methods
+                        else:
+                            print(f"⚠️ EXTRACTOR: String contains SELECT but doesn't look like valid SQL: {step[:100]}")
 
-                    # NEW: Check for DATA in string (list format)
-                    elif step.strip().startswith("[") and ")]" in step:
+                    # NEW: Check for DATA in string (list format) - only if we don't have data yet
+                    elif step.strip().startswith("[") and ")]" in step and not chain_data:
                         print(
                             f"✅ EXTRACTOR: Found data-like string in step {i+1}"
                         )  # Console log
@@ -299,18 +346,20 @@ class SnowflakeNLPAgent:
                     try:
                         import ast
                         import datetime
+                        from decimal import Decimal
 
                         # First try with ast.literal_eval (safer)
                         try:
                             parsed_data = ast.literal_eval(possible_data)
                         except Exception:
-                            # If ast.literal_eval fails, try eval with safe namespace for datetime objects
+                            # If ast.literal_eval fails, try eval with safe namespace for datetime objects and Decimal
                             safe_dict = {
                                 '__builtins__': {},
                                 'datetime': datetime,
                                 'date': datetime.date,
                                 'time': datetime.time,
                                 'timedelta': datetime.timedelta,
+                                'Decimal': Decimal,
                             }
                             parsed_data = eval(possible_data, safe_dict)
                         
@@ -350,7 +399,7 @@ class SnowflakeNLPAgent:
         return sql_query, chain_data
 
     def clean_sql_response(self, sql_text: str) -> str:
-        """Clean SQL response by removing markdown and extra formatting"""
+        """Clean SQL response by removing markdown and extra formatting while preserving SQL structure"""
         if not isinstance(sql_text, str):
             return ""
 
@@ -387,49 +436,13 @@ class SnowflakeNLPAgent:
             if line:  # Only add non-empty lines
                 cleaned_lines.append(line)
 
-        # STEP 5: Filter only valid SQL lines
-        sql_lines = []
-        for line in cleaned_lines:
-            # Keep lines that look like SQL
-            if line.upper().startswith(
-                (
-                    "SELECT",
-                    "INSERT",
-                    "UPDATE",
-                    "DELETE",
-                    "WITH",
-                    "FROM",
-                    "WHERE",
-                    "GROUP",
-                    "ORDER",
-                    "HAVING",
-                    "LIMIT",
-                    "SHOW",
-                    "DESCRIBE",
-                    "EXPLAIN",
-                )
-            ) or any(
-                keyword in line.upper()
-                for keyword in [
-                    "FROM",
-                    "WHERE",
-                    "AND",
-                    "OR",
-                    "ORDER BY",
-                    "GROUP BY",
-                    "HAVING",
-                    "INNER JOIN",
-                    "LEFT JOIN",
-                    "RIGHT JOIN",
-                ]
-            ):
-                sql_lines.append(line)
+        # STEP 5: Join all lines back together (CRITICAL FIX: Don't filter individual lines)
+        # The original filtering was destroying valid SQL structure
+        result = "\n".join(cleaned_lines).strip()
 
-        # STEP 6: Join SQL lines
-        result = " ".join(sql_lines).strip()  # Use space instead of \n for one line
-
-        # STEP 7: Clean multiple spaces
-        result = re.sub(r"\s+", " ", result)
+        # STEP 6: Clean up excessive whitespace but preserve structure
+        result = re.sub(r"\n\s*\n", "\n", result)  # Remove empty lines
+        result = re.sub(r"[ \t]+", " ", result)    # Normalize spaces/tabs to single space
 
         return result
         """Clean SQL response by removing markdown and extra formatting - Optimized for CodeLlama"""
@@ -983,6 +996,14 @@ class SnowflakeNLPAgent:
                 result, user_question
             )
             generated_sql = sql_query if sql_query != "N/A" else None
+            
+            # Debug log the initial extraction
+            self.log_step(
+                "🎯 Initial SQL Extraction",
+                f"SQL extracted: {'Yes' if generated_sql else 'No'}, "
+                f"SQL preview: {(generated_sql[:80] + '...') if generated_sql else 'None'}, "
+                f"Data extracted: {'Yes' if chain_data else 'No'}"
+            )
 
             if "intermediate_steps" in result and result["intermediate_steps"]:
                 self.log_step(
@@ -1019,26 +1040,26 @@ class SnowflakeNLPAgent:
                         ):
                             sql_queries_found.append(potential_sql)
 
-                            # CRITICAL FIX: Always use the FIRST valid SQL/data pair
-                            # The first pair is usually the correct one; subsequent ones are often LLM confusion
-                            if sql_query == "N/A":
+                            # ONLY override if we don't already have extracted SQL
+                            if not generated_sql and sql_query == "N/A":
                                 sql_query = potential_sql
+                                generated_sql = potential_sql
                                 chain_data = potential_data
                                 self.log_step(
-                                    "✅ Found SQL and data in tuple",
+                                    "✅ Found SQL and data in tuple (fallback)",
                                     f"SQL: {sql_query[:50]}..., Data preview: {str(potential_data)[:100]}...",
                                 )
 
                                 # For ANY query type, use the FIRST valid result and break
                                 # This prevents LLM confusion from overriding correct results
                                 self.log_step(
-                                    "🎯 Using first valid SQL/data pair",
+                                    "🎯 Using first valid SQL/data pair (fallback)",
                                     "Ignoring any additional SQL queries",
                                 )
                                 break
 
-                    # Legacy format handling
-                    elif isinstance(step, dict):
+                    # Legacy format handling - only if we don't have SQL yet
+                    elif isinstance(step, dict) and not generated_sql:
                         potential_sql = (
                             step.get("sql_cmd") or step.get("query") or step.get("sql")
                         )
@@ -1052,24 +1073,26 @@ class SnowflakeNLPAgent:
                             sql_queries_found.append(potential_sql)
                             if sql_query == "N/A":
                                 sql_query = potential_sql
-                                self.log_step("📝 Found SQL in dict", sql_query)
+                                generated_sql = potential_sql
+                                self.log_step("📝 Found SQL in dict (fallback)", sql_query)
                         if potential_data:
                             chain_data = potential_data
                             self.log_step(
-                                "📊 Found data in dict",
+                                "📊 Found data in dict (fallback)",
                                 f"Data preview: {str(potential_data)[:100]}...",
                             )
 
                         if sql_query != "N/A" and chain_data:
                             break
 
-                    # Some providers may pass SQL as a raw string step
-                    elif isinstance(step, str) and "SELECT" in step.upper():
+                    # Some providers may pass SQL as a raw string step - only if we don't have SQL yet
+                    elif isinstance(step, str) and "SELECT" in step.upper() and not generated_sql:
                         sql_queries_found.append(step)
                         if sql_query == "N/A":
                             sql_query = step
+                            generated_sql = step
                             self.log_step(
-                                "📝 Found SQL as raw string in steps", sql_query[:120]
+                                "📝 Found SQL as raw string in steps (fallback)", sql_query[:120]
                             )
 
                 # Log warning if multiple SQL queries were found
@@ -1084,16 +1107,17 @@ class SnowflakeNLPAgent:
                             sql[:100] + "..." if len(sql) > 100 else sql,
                         )
 
-            # If no SQL from steps, check if result['result'] itself holds SQL text
-            # BUT ONLY if we haven't found a valid SQL from intermediate steps
+            # If no SQL from steps and not from initial extraction, check if result['result'] itself holds SQL text
+            # BUT ONLY if we haven't found a valid SQL from intermediate steps or initial extraction
             # AND we're not dealing with the problematic "Answer" field
-            if sql_query == "N/A" and "intermediate_steps" not in result:
+            if not generated_sql and sql_query == "N/A" and "intermediate_steps" not in result:
                 possible_sql = result.get("result")
                 if isinstance(possible_sql, str) and "SELECT" in possible_sql.upper():
                     # This is a fallback for chains that don't produce intermediate steps
                     sql_query = self.clean_sql_response(possible_sql)
+                    generated_sql = sql_query
                     self.log_step(
-                        "📝 Found SQL in result['result'] (fallback)", sql_query[:120]
+                        "📝 Found SQL in result['result'] (final fallback)", sql_query[:120]
                     )
 
             # IMPORTANT: If we have chain_data with results, DON'T use result['result']
@@ -1103,8 +1127,10 @@ class SnowflakeNLPAgent:
                     "🛡️ Preventing Answer field interference",
                     "Have valid chain_data and SQL, ignoring result['result']",
                 )
-            # Store the generated SQL for learning
-            generated_sql = sql_query if sql_query != "N/A" else None
+            
+            # Final SQL assignment - preserve what we already found
+            if not generated_sql and sql_query != "N/A":
+                generated_sql = sql_query
 
             # Process results
             actual_result = None
@@ -1155,12 +1181,12 @@ class SnowflakeNLPAgent:
                     f"chain_data is None: {chain_data is None}, looks_like_rows: {looks_like_rows}",
                 )
 
-            # If no usable rows found in intermediate_steps, but we have a valid SQL, do manual execution
-            if not execution_success and generated_sql:
-                # FALLBACK: Manual SQL execution
+            # CRITICAL FIX: ALWAYS try manual execution if we have valid SQL
+            # This ensures queries execute even when LangChain chain fails
+            if generated_sql and not execution_success:
                 self.log_step(
-                    "🔄 Fallback: Manual execution",
-                    "Data from chain was not usable, executing SQL directly.",
+                    "🔄 Manual execution (LangChain fallback)",
+                    "Executing SQL directly to ensure results",
                 )
 
                 # Clean SQL (remove markdown/backticks)
