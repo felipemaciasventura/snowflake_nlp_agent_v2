@@ -58,6 +58,8 @@ def setup_sidebar():
             options.append("gemini")
         if config.is_ollama_available():
             options.append("ollama")
+        if config.is_sqlcoder_available():
+            options.append("sqlcoder")
         return options
 
     current_provider = config.get_available_llm_provider() or "auto"
@@ -99,6 +101,11 @@ def setup_sidebar():
                 "Ollama model", value=str(config.OLLAMA_MODEL or "")
             )
             st.sidebar.caption(f"Server: {config.OLLAMA_BASE_URL}")
+        elif sel == "sqlcoder":
+            model_val = st.sidebar.text_input(
+                "SQLCoder model", value=str(config.SQLCODER_MODEL or "")
+            )
+            st.sidebar.caption(f"🎯 SQL Specialized Server: {config.SQLCODER_BASE_URL}")
         else:
             model_val = ""
 
@@ -115,6 +122,8 @@ def setup_sidebar():
                     config.GEMINI_MODEL = model_val
                 elif sel == "ollama" and model_val:
                     config.OLLAMA_MODEL = model_val
+                elif sel == "sqlcoder" and model_val:
+                    config.SQLCODER_MODEL = model_val
 
                 # Re-initialize agent if DB connection exists
                 if st.session_state.db_connection:
@@ -139,6 +148,10 @@ def setup_sidebar():
         model_info = f"LLM: {config.OLLAMA_MODEL} (Ollama Local)"
         st.sidebar.success("🏠 Local Model Active")
         st.sidebar.info(f"📍 Server: {config.OLLAMA_BASE_URL}")
+    elif provider == "sqlcoder":
+        model_info = f"LLM: {config.SQLCODER_MODEL} (SQLCoder Specialized)"
+        st.sidebar.success("🎯 SQL Specialized Model Active")
+        st.sidebar.info(f"📍 Server: {config.SQLCODER_BASE_URL}")
     elif provider == "gemini":
         model_info = f"LLM: {config.GEMINI_MODEL} (Google Gemini)"
     elif provider == "groq":

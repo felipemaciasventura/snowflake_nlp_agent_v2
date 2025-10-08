@@ -34,6 +34,12 @@ class Config:
         )
         self.OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
 
+        # SQLCoder configuration (specialized SQL model)
+        self.SQLCODER_BASE_URL = os.getenv(
+            "SQLCODER_BASE_URL", "http://192.168.0.145:11434"
+        )
+        self.SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "sqlcoder-fp16:latest")
+
         # Model configuration
         self.MODEL_NAME = os.getenv("MODEL_NAME", "llama-3.3-70b-versatile")  # For Groq
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # For Gemini
@@ -41,7 +47,7 @@ class Config:
         # LLM Provider selection (auto-detect or manual)
         self.LLM_PROVIDER = os.getenv(
             "LLM_PROVIDER", "auto"
-        )  # auto, groq, gemini, ollama
+        )  # auto, groq, gemini, ollama, sqlcoder
 
         # App
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
@@ -72,6 +78,14 @@ class Config:
         except (requests.exceptions.RequestException, requests.exceptions.Timeout):
             return False
 
+    def is_sqlcoder_available(self) -> bool:
+        """Check if SQLCoder is available and accessible"""
+        try:
+            response = requests.get(f"{self.SQLCODER_BASE_URL}/api/tags", timeout=3)
+            return response.status_code == 200
+        except (requests.exceptions.RequestException, requests.exceptions.Timeout):
+            return False
+
     def get_available_llm_provider(self) -> str:
         """Detect which LLM provider is available"""
         if self.LLM_PROVIDER == "groq" and self.GROQ_API_KEY:
@@ -80,9 +94,13 @@ class Config:
             return "gemini"
         elif self.LLM_PROVIDER == "ollama" and self.is_ollama_available():
             return "ollama"
+        elif self.LLM_PROVIDER == "sqlcoder" and self.is_sqlcoder_available():
+            return "sqlcoder"
         elif self.LLM_PROVIDER == "auto":
-            # Auto-detect: priority Ollama > Gemini > Groq (local first)
-            if self.is_ollama_available():
+            # Auto-detect: priority SQLCoder > Ollama > Gemini > Groq (specialized first, then local first)
+            if self.is_sqlcoder_available():
+                return "sqlcoder"
+            elif self.is_ollama_available():
                 return "ollama"
             elif self.GOOGLE_API_KEY:
                 return "gemini"
@@ -103,7 +121,7 @@ class Config:
         # Verify that at least one LLM provider is available
         llm_provider = self.get_available_llm_provider()
         if not llm_provider:
-            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY or OLLAMA_BASE_URL"])
+            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY or OLLAMA_BASE_URL or SQLCODER_BASE_URL"])
 
         missing_vars = []
         for var in required_vars:

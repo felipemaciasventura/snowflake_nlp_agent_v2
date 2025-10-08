@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "snowflake-nlp-agent-v2"
-version = "2.7.0"
+version = "2.8.0"
 description = "An intelligent web application that enables natural language queries to Snowflake databases using LangChain with triple LLM support and robust SQL result extraction"
 readme = "README.md"
 license = {file = "LICENSE"}

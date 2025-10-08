@@ -59,6 +59,14 @@ class SnowflakeNLPAgent:
                 temperature=0.1,
             )
             st.sidebar.info(f"LLM in use: Ollama ({config.OLLAMA_MODEL}) - Local")
+        elif provider == "sqlcoder":
+            # Use SQLCoder (specialized SQL model - maximum SQL accuracy)
+            self.llm = ChatOllama(
+                base_url=config.SQLCODER_BASE_URL,
+                model=config.SQLCODER_MODEL,
+                temperature=0.0,  # Lower temperature for more deterministic SQL generation
+            )
+            st.sidebar.info(f"🎯 LLM in use: SQLCoder ({config.SQLCODER_MODEL}) - SQL Specialized")
         elif provider == "gemini" and google_key:
             # Use Gemini (recommended if you have student plan)
             self.llm = ChatGoogleGenerativeAI(
@@ -86,7 +94,7 @@ class SnowflakeNLPAgent:
             st.sidebar.info("LLM in use: Groq (Llama)")
         else:
             raise RuntimeError(
-                "No LLM provider available. Configure GOOGLE_API_KEY, GROQ_API_KEY or OLLAMA_BASE_URL."
+                "No LLM provider available. Configure GOOGLE_API_KEY, GROQ_API_KEY, OLLAMA_BASE_URL or SQLCODER_BASE_URL."
             )
 
         self.db = SQLDatabase.from_uri(db_connection)

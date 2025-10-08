@@ -112,6 +112,25 @@ Rules:
 
 SQL:"""
 
+        elif provider == "sqlcoder":
+            return """You are SQLCoder, a highly specialized SQL generation model. Generate accurate Snowflake SQL queries.
+
+DATABASE INFORMATION:
+{table_info}
+
+Question: {input}
+
+STRICT REQUIREMENTS:
+1. Generate ONLY pure SQL - no markdown, no explanations, no comments
+2. Use proper Snowflake SQL syntax and functions
+3. For SELECT queries, add LIMIT 10 unless asking for counts or totals
+4. For metadata queries, use CURRENT_DATABASE(), CURRENT_SCHEMA(), etc.
+5. Ensure all table and column references are valid based on the schema provided
+6. Use proper JOINs when multiple tables are involved
+7. Apply appropriate WHERE clauses for filtering
+
+Generate SQL query:"""
+
         return self._get_minimal_prompt()
 
     def save_prompt_template(self, content: str, filename: str) -> bool:
