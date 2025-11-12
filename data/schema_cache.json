@@ -495,7 +495,7 @@
       "indexes": [],
       "comment": null,
       "created_date": null,
-      "last_analyzed": "2025-11-10T18:46:20.966814"
+      "last_analyzed": "2025-11-12T04:11:02.951102"
     },
     {
       "name": "LOCATIONS",
@@ -1055,7 +1055,7 @@
       "indexes": [],
       "comment": null,
       "created_date": null,
-      "last_analyzed": "2025-11-10T18:46:25.236884"
+      "last_analyzed": "2025-11-12T04:11:06.530668"
     },
     {
       "name": "OWNERS",
@@ -1072,9 +1072,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            1
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "OWNER_UID",
@@ -1085,9 +1087,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "OWN_7ECB4466"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "FIRST_NAME",
@@ -1098,9 +1102,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Robert"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MIDDLE_NAME",
@@ -1112,8 +1118,8 @@
           "numeric_scale": null,
           "comment": null,
           "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "distinct_count": 1,
+          "null_percentage": 100.0
         },
         {
           "name": "LAST_NAME",
@@ -1124,9 +1130,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Anderson"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "COMPANY",
@@ -1137,9 +1145,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Century 21"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "EMAIL",
@@ -1150,9 +1160,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "robert.anderson@aol.com"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "PHONE",
@@ -1163,9 +1175,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "(303) 431-6806"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SECONDARY_PHONE",
@@ -1176,9 +1190,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "(687) 528-7430"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MAILING_ADDRESS",
@@ -1189,9 +1205,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2388 Garden Ave"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MAILING_CITY",
@@ -1202,9 +1220,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Baltimore"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MAILING_STATE",
@@ -1215,9 +1235,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "VA"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MAILING_ZIPCODE",
@@ -1228,9 +1250,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "68699"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TAX_ID",
@@ -1241,9 +1265,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "TIN120263203"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "DATE_OF_BIRTH",
@@ -1254,9 +1280,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "1993-09-09"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "OWNERSHIP_TYPE",
@@ -1267,9 +1295,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Joint"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "OWNERSHIP_PERCENTAGE",
@@ -1280,9 +1310,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            83.1
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "PRIMARY_CONTACT",
@@ -1293,9 +1325,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            true
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "PREFERRED_CONTACT_METHOD",
@@ -1306,9 +1340,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Text"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "INVESTOR_FLAG",
@@ -1319,9 +1355,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            true
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "INVESTOR_TYPE",
@@ -1332,9 +1370,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Institutional"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "NOTES",
@@ -1346,8 +1386,8 @@
           "numeric_scale": null,
           "comment": null,
           "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "distinct_count": 1,
+          "null_percentage": 100.0
         },
         {
           "name": "CREATED_AT",
@@ -1358,9 +1398,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-11-16"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "UPDATED_AT",
@@ -1371,9 +1413,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-12-12"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "NUM_PROPERTIES_OWNED",
@@ -1384,9 +1428,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            6
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "AVERAGE_PROPERTY_VALUE",
@@ -1397,9 +1443,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            597025
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TOTAL_PORTFOLIO_VALUE",
@@ -1410,9 +1458,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            8329829
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LAST_TRANSACTION_DATE",
@@ -1423,9 +1473,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2021-07-08"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "CREDIT_SCORE",
@@ -1436,9 +1488,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            826
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "PREFERRED_BANK",
@@ -1449,9 +1503,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Citibank"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LEGAL_REP",
@@ -1462,9 +1518,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Betty Jones"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "IS_TRUST",
@@ -1475,9 +1533,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            false
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TRUST_NAME",
@@ -1488,9 +1548,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Anderson Family Trust"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "ENTITY_TYPE",
@@ -1501,9 +1563,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Partnership"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "REGISTRATION_STATE",
@@ -1514,9 +1578,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "TX"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "YEARS_AS_OWNER",
@@ -1527,9 +1593,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            23
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "RISK_PROFILE",
@@ -1540,9 +1608,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Moderate"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "ACCREDITATION_STATUS",
@@ -1553,9 +1623,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Accredited"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "REFERRAL_SOURCE",
@@ -1566,9 +1638,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Friend"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "OWNERS_SINCE",
@@ -1579,9 +1653,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2013-03-08"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SOCIAL_MEDIA",
@@ -1592,9 +1668,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "@robertanderson"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "WEBSITE_URL",
@@ -1605,9 +1683,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "www.robertanderson.com"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         }
       ],
       "primary_keys": [],
@@ -1615,7 +1695,7 @@
       "indexes": [],
       "comment": null,
       "created_date": null,
-      "last_analyzed": "2025-11-10T18:46:29.380668"
+      "last_analyzed": "2025-11-12T04:11:10.191733"
     },
     {
       "name": "PROPERTIES",
@@ -1632,11 +1712,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            32
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "PROPERTY_UID",
@@ -1647,11 +1725,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "PROP_D779EC6302"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "OWNER_ID",
@@ -1662,11 +1738,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            7
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LOCATION_ID",
@@ -1677,11 +1751,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            26
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "ADDRESS",
@@ -1692,11 +1764,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "7335 Garden Ave"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "CITY",
@@ -1707,11 +1777,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Charlotte"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "STATE",
@@ -1722,11 +1790,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "GA"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "ZIPCODE",
@@ -1737,11 +1803,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "37905"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "COUNTY",
@@ -1752,11 +1816,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Charlotte County"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LATITUDE",
@@ -1767,11 +1829,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            33.666750534
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LONGITUDE",
@@ -1782,11 +1842,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            -75.509515929
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "PRICE",
@@ -1797,11 +1855,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            458602
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LIST_PRICE",
@@ -1812,11 +1868,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            495716
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "SALE_PRICE",
@@ -1827,11 +1881,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            462027
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "BEDROOMS",
@@ -1842,11 +1894,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            3
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "BATHROOMS",
@@ -1857,11 +1907,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            2.5
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "SQFT",
@@ -1872,11 +1920,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            1540
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LOT_SIZE",
@@ -1887,11 +1933,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            1.1
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "YEAR_BUILT",
@@ -1902,11 +1946,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            1951
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "PROPERTY_TYPE",
@@ -1917,11 +1959,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Villa"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "HEATING",
@@ -1932,11 +1972,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Heat Pump"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "COOLING",
@@ -1947,11 +1985,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Window Units"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "PARKING",
@@ -1962,11 +1998,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Carport"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "HOA_FEE",
@@ -1977,11 +2011,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            0.0
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "DAYS_ON_MARKET",
@@ -1992,11 +2024,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            228
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "STATUS",
@@ -2007,11 +2037,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Expired"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "SCHOOL_RATING",
@@ -2022,11 +2050,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            1
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "CRIME_RATE",
@@ -2037,11 +2063,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            7.7
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "FLOOD_ZONE",
@@ -2052,11 +2076,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            true
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "ENERGY_RATING",
@@ -2067,11 +2089,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "B"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LAST_RENOVATION_DATE",
@@ -2083,8 +2103,8 @@
           "numeric_scale": null,
           "comment": null,
           "sample_values": [],
-          "distinct_count": 1,
-          "null_percentage": 100.0
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LISTING_DATE",
@@ -2095,11 +2115,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "2022-12-20"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "SALE_DATE",
@@ -2111,8 +2129,8 @@
           "numeric_scale": null,
           "comment": null,
           "sample_values": [],
-          "distinct_count": 1,
-          "null_percentage": 100.0
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "LISTING_AGENT_ID",
@@ -2123,11 +2141,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            36
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "GARAGE_SPACES",
@@ -2138,11 +2154,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            2
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "BASEMENT",
@@ -2153,11 +2167,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            false
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "FIREPLACE",
@@ -2168,11 +2180,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            false
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "POOL",
@@ -2183,11 +2193,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            true
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "ROOF_TYPE",
@@ -2198,11 +2206,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Metal"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "EXTERIOR_MATERIAL",
@@ -2213,11 +2219,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Stucco"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "INTERIOR_FEATURES",
@@ -2228,11 +2232,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Crown Molding"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "APPLIANCES",
@@ -2243,11 +2245,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Refrigerator, Stove"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "FLOORING",
@@ -2258,11 +2258,9 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [
-            "Mixed"
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "NEIGHBORHOOD_RATING",
@@ -2273,11 +2271,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            2
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "WALK_SCORE",
@@ -2288,11 +2284,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            30
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "TRANSIT_SCORE",
@@ -2303,11 +2297,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            65
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "BIKE_SCORE",
@@ -2318,11 +2310,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            48
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         },
         {
           "name": "TAX_ASSESSED_VALUE",
@@ -2333,11 +2323,9 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [
-            414954
-          ],
-          "distinct_count": 1,
-          "null_percentage": 0.0
+          "sample_values": [],
+          "distinct_count": null,
+          "null_percentage": null
         }
       ],
       "primary_keys": [],
@@ -2345,7 +2333,7 @@
       "indexes": [],
       "comment": null,
       "created_date": null,
-      "last_analyzed": "2025-11-10T18:46:34.468301"
+      "last_analyzed": "2025-11-12T04:11:14.041721"
     },
     {
       "name": "TRANSACTIONS",
@@ -2362,9 +2350,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            11
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TRANSACTION_UID",
@@ -2375,9 +2365,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "TXN_499BA3CCB2"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "PROPERTY_ID",
@@ -2388,9 +2380,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            24
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "BUYER_ID",
@@ -2401,9 +2395,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            35
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SELLER_ID",
@@ -2414,9 +2410,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            15
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "AGENT_ID",
@@ -2427,9 +2425,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            37
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SALE_DATE",
@@ -2440,9 +2440,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-02-12"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SALE_PRICE",
@@ -2453,9 +2455,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            1081883
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LIST_PRICE",
@@ -2466,9 +2470,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            1209247
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "CLOSING_COSTS",
@@ -2479,9 +2485,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            29465.66
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MORTGAGE_AMOUNT",
@@ -2492,9 +2500,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            884112
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MORTGAGE_RATE",
@@ -2505,9 +2515,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            3.13
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "MORTGAGE_TERM_YEARS",
@@ -2518,9 +2530,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            20
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "DOWN_PAYMENT",
@@ -2531,9 +2545,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            197771
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "FINANCING_TYPE",
@@ -2544,9 +2560,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Conventional"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TITLE_COMPANY",
@@ -2557,9 +2575,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Realty One Title"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "ESCROW_COMPANY",
@@ -2570,9 +2590,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Weichert Realtors Escrow"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "INSPECTION_DATE",
@@ -2583,9 +2605,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-01-03"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "APPRAISAL_VALUE",
@@ -2596,9 +2620,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            1038481
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SALE_TYPE",
@@ -2609,9 +2635,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Foreclosure"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SALE_CONDITION",
@@ -2622,9 +2650,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Move-in Ready"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "DAYS_ON_MARKET",
@@ -2635,9 +2665,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            42
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "COMMISSION_RATE",
@@ -2648,9 +2680,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            3.86
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "AGENT_SPLIT",
@@ -2661,9 +2695,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            0.55
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TAXES_PAID",
@@ -2674,9 +2710,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            16558.72
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "TRANSFER_TAX",
@@ -2687,9 +2725,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            1474.32
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "DEED_TYPE",
@@ -2700,9 +2740,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Warranty Deed"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "RECORDED_DATE",
@@ -2713,9 +2755,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-06-14"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LOAN_TYPE",
@@ -2726,9 +2770,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "FHA"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LENDER_NAME",
@@ -2739,9 +2785,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Quicken Loans"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "LOAN_STATUS",
@@ -2752,9 +2800,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Paid Off"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "BUYER_AGENT_ID",
@@ -2765,9 +2815,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            37
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SELLER_AGENT_ID",
@@ -2778,9 +2830,11 @@
           "numeric_precision": 38,
           "numeric_scale": 0,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            29
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "INSPECTION_PASSED",
@@ -2791,9 +2845,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            true
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "CLOSING_DATE",
@@ -2804,9 +2860,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "2023-02-03"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "CLOSING_AGENT",
@@ -2817,9 +2875,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Linda Ramirez"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "EARNEST_MONEY",
@@ -2830,9 +2890,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            21980.64
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "CONTINGENCIES",
@@ -2843,9 +2905,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            "Appraisal"
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "FORECLOSURE_FLAG",
@@ -2856,9 +2920,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            false
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "SHORT_SALE_FLAG",
@@ -2869,9 +2935,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            false
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "RENOVATION_BUDGET",
@@ -2882,9 +2950,11 @@
           "numeric_precision": null,
           "numeric_scale": null,
           "comment": null,
-          "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "sample_values": [
+            0.0
+          ],
+          "distinct_count": 1,
+          "null_percentage": 0.0
         },
         {
           "name": "AFTER_REPAIR_VALUE",
@@ -2896,8 +2966,8 @@
           "numeric_scale": null,
           "comment": null,
           "sample_values": [],
-          "distinct_count": null,
-          "null_percentage": null
+          "distinct_count": 1,
+          "null_percentage": 100.0
         }
       ],
       "primary_keys": [],
@@ -2905,7 +2975,7 @@
       "indexes": [],
       "comment": null,
       "created_date": null,
-      "last_analyzed": "2025-11-10T18:46:39.265115"
+      "last_analyzed": "2025-11-12T04:11:17.727867"
     }
   ],
   "relationships": [
@@ -3038,7 +3108,7 @@
     }
   },
   "business_domain": "real_estate",
-  "generated_at": "2025-11-10T18:46:15.006337",
+  "generated_at": "2025-11-12T04:10:58.002665",
   "table_count": 5,
   "relationship_count": 7
 }

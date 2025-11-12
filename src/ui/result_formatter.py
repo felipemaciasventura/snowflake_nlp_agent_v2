@@ -591,3 +591,4 @@ def format_sql_result_to_dataframe(data, sql_query="", user_question="", db_conn
 
 
 
+

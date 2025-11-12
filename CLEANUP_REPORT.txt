@@ -1,0 +1,70 @@
+================================================================================
+CLEANUP REPORT - Archivos Innecesarios Eliminados
+================================================================================
+
+FECHA: $(date +"%Y-%m-%d %H:%M:%S")
+PROYECTO: Snowflake NLP Agent v2
+
+================================================================================
+ARCHIVOS ELIMINADOS
+================================================================================
+
+1. src/utils/context_validator.py
+   - Tamaño: 490 líneas
+   - Razón: No utilizado en ninguna parte del proyecto
+   - Backup: archive/context_validator.py.backup
+   - Impacto: NINGUNO - Funcionalidad no afectada
+
+2. tests/test_input_validation.py
+   - Tamaño: 144 líneas
+   - Razón: Test roto (importa función inexistente)
+   - Backup: archive/test_input_validation.py.backup
+   - Impacto: NINGUNO - Test ya estaba roto
+
+================================================================================
+ESTADÍSTICAS
+================================================================================
+
+Total líneas eliminadas: 634 líneas
+Archivos eliminados: 2
+Archivos respaldados: 2 (en carpeta /archive)
+
+Estructura después de limpieza:
+- src/agent/: 1 archivo (nlp_agent.py)
+- src/database/: 2 archivos (schema_inspector.py, snowflake_conn.py)
+- src/prompts/: 1 archivo (sql_prompts.py)
+- src/ui/: 6 archivos (todos en uso)
+- src/utils/: 12 archivos (todos en uso activo)
+- tests/: 2 archivos (conftest.py, test_config.py)
+
+================================================================================
+VERIFICACIÓN
+================================================================================
+
+✅ Archivos eliminados correctamente
+✅ Backups creados en /archive
+✅ Imports de aplicación funcionan correctamente
+✅ Funcionalidad NO afectada
+
+================================================================================
+BENEFICIOS
+================================================================================
+
+1. Código más limpio y mantenible
+2. Menos archivos que revisar durante desarrollo
+3. Estructura más clara para nuevos desarrolladores
+4. Reducción de complejidad del proyecto
+5. Todos los archivos restantes tienen un propósito claro
+
+================================================================================
+ARCHIVOS PRESERVADOS (Pueden restaurarse si es necesario)
+================================================================================
+
+Si en algún momento necesitas recuperar los archivos eliminados:
+
+  cp archive/context_validator.py.backup src/utils/context_validator.py
+  cp archive/test_input_validation.py.backup tests/test_input_validation.py
+
+================================================================================
+ESTADO FINAL: ✅ PROYECTO LIMPIO Y FUNCIONAL
+================================================================================

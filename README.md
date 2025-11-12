@@ -286,6 +286,7 @@ For detailed information on supported query types and best practices, see **[QUE
 pip install langchain-ollama>=0.2.0
 ```
 
+
 ### Problem: Connection errors or timeouts
 **Solutions:**
 1. Verify `SNOWFLAKE_ACCOUNT` format (should be like `xy12345` or `xy12345.us-east-1`)
