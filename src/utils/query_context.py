@@ -224,11 +224,11 @@ class QueryContextManager:
                 analysis["query_type"] = "DELETE"
 
             # Extract tables (simple pattern matching)
-            from_match = re.search(r"FROM\\s+([\\w_]+)", sql_upper)
+            from_match = re.search(r"FROM\s+([\w_]+)", sql_upper)
             if from_match:
                 analysis["tables_used"].append(from_match.group(1))
 
-            join_matches = re.findall(r"JOIN\\s+([\\w_]+)", sql_upper)
+            join_matches = re.findall(r"JOIN\s+([\w_]+)", sql_upper)
             analysis["tables_used"].extend(join_matches)
 
             # Extract common SQL functions
@@ -283,7 +283,7 @@ class QueryContextManager:
     def _normalize_question(self, question: str) -> str:
         """Normalize question for similarity matching"""
         # Convert to lowercase and remove extra whitespace
-        normalized = re.sub(r"\\s+", " ", question.lower().strip())
+        normalized = re.sub(r"\s+", " ", question.lower().strip())
 
         # Remove common question words for better matching
         stop_words = [
@@ -393,7 +393,7 @@ class QueryContextManager:
             for pattern in patterns:
                 if pattern.success_score > 0.8:
                     # Extract words from user question
-                    words = re.findall(r"\\b\\w{3,}\\b", pattern.user_question.lower())
+                    words = re.findall(r"\b\w{3,}\b", pattern.user_question.lower())
                     for word in words:
                         if word not in [
                             "the",
@@ -414,28 +414,28 @@ class QueryContextManager:
         if not context.similar_successful_queries:
             return ""
 
-        prompt_parts = ["\\n🎯 SUCCESSFUL QUERY EXAMPLES FROM HISTORY:"]
+        prompt_parts = ["\n🎯 SUCCESSFUL QUERY EXAMPLES FROM HISTORY:"]
 
         for i, query in enumerate(context.similar_successful_queries[:3], 1):
-            prompt_parts.append(f"\\nExample {i}:")
+            prompt_parts.append(f"\nExample {i}:")
             prompt_parts.append(f"Question: {query.user_question}")
             prompt_parts.append(f"SQL: {query.generated_sql}")
             if query.result_count:
                 prompt_parts.append(f"Results: {query.result_count} rows")
 
         if context.common_patterns:
-            prompt_parts.append("\\n📊 RECOMMENDED PATTERNS:")
+            prompt_parts.append("\n📊 RECOMMENDED PATTERNS:")
             for pattern, count in list(context.common_patterns.items())[:5]:
                 prompt_parts.append(
                     f"    • {pattern} (used {count} times successfully)"
                 )
 
         if context.preferred_functions:
-            prompt_parts.append("\\n🔧 PREFERRED FUNCTIONS:")
+            prompt_parts.append("\n🔧 PREFERRED FUNCTIONS:")
             functions_list = ", ".join(list(context.preferred_functions.keys())[:8])
             prompt_parts.append(f"    • {functions_list}")
 
-        return "\\n".join(prompt_parts)
+        return "\n".join(prompt_parts)
 
     def save_history(self) -> None:
         """Save query history to disk"""

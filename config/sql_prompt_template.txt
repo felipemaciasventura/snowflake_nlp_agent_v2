@@ -42,24 +42,31 @@ USER QUESTION: {input}
 17. ⚡ AVOID UNNECESSARY: Don't include address, description, or text fields unless specifically requested
 18. 📅 DATE HANDLING: year_built is INT (e.g. 2020), NOT DATE - use YEAR(CURRENT_DATE()) for comparisons
 19. 📅 AGE CALCULATIONS: For "X years old", use: year_built > YEAR(CURRENT_DATE()) - X
-20. For other queries: add LIMIT 10 unless specifically requested otherwise
-21. For rankings: use RANK() OVER (ORDER BY column DESC/ASC)
-22. For prices: use column names like sale_price, list_price, price
-23. For database/schema info: use CURRENT_DATABASE() and CURRENT_SCHEMA() functions
-24. Always use proper table aliases (p, l, a, t, o) for readability
-25. For date queries: use DATE functions and proper date formatting
-26. For text search: use UPPER() or ILIKE for case-insensitive matching
-27. 🔥 MANDATORY: Always use meaningful column aliases with AS keyword
-28. 🔥 MANDATORY: Never return columns without descriptive names
-29. ⚡ BE SELECTIVE: Only include essential columns for the specific query
-30. ⚡ AVOID UNNECESSARY: Don't include address, description, or text fields unless specifically requested
-31. 📅 DATE HANDLING: year_built is INT (e.g. 2020), NOT DATE - use YEAR(CURRENT_DATE()) for comparisons
-32. 📅 AGE CALCULATIONS: For "X years old", use: year_built > YEAR(CURRENT_DATE()) - X
+20. 🔥 CRITICAL VALUE QUERIES: For "highest-value", "most expensive", "highest price", "top value" - ALWAYS order by PRICE/VALUE column (sale_price, price) DESC, NEVER by date
+21. 🔥 CRITICAL DATE FILTERS: Do NOT add date filters (WHERE date >= ...) unless the question explicitly mentions a time period like "last 30 days", "this year", "recent"
+22. 🔥 CRITICAL DOMAIN MAPPING: When user asks about "orders" in real estate context, interpret as "transactions" - use transactions table with sale_price
+23. For other queries: add LIMIT 10 unless specifically requested otherwise
+24. For rankings: use RANK() OVER (ORDER BY column DESC/ASC) when ranking is needed, or simple ORDER BY for top N queries
+25. For prices: use column names like sale_price, list_price, price
+26. For database/schema info: use CURRENT_DATABASE() and CURRENT_SCHEMA() functions
+27. Always use proper table aliases (p, l, a, t, o) for readability
+28. For date queries: use DATE functions and proper date formatting
+29. For text search: use UPPER() or ILIKE for case-insensitive matching
+30. 🔥 MANDATORY: Always use meaningful column aliases with AS keyword
+31. 🔥 MANDATORY: Never return columns without descriptive names
+32. ⚡ BE SELECTIVE: Only include essential columns for the specific query
+33. ⚡ AVOID UNNECESSARY: Don't include address, description, or text fields unless specifically requested
 
 📝 QUERY EXAMPLES:
 
 Question: most expensive properties by city
 Answer: SELECT l.city AS city_name, p.property_id AS property_id, p.price AS property_price FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price IS NOT NULL ORDER BY p.price DESC LIMIT 10
+
+Question: show the 10 highest-value orders
+Answer: SELECT p.property_id AS property_id, p.price AS list_price, t.sale_date AS sale_date, t.sale_price AS final_sale_price FROM properties p JOIN transactions t ON p.property_id = t.property_id ORDER BY t.sale_price DESC LIMIT 10
+
+Question: highest-value transactions
+Answer: SELECT t.transaction_id AS transaction_id, p.property_id AS property_id, t.sale_price AS sale_price, t.sale_date AS sale_date FROM properties p JOIN transactions t ON p.property_id = t.property_id ORDER BY t.sale_price DESC LIMIT 10
 
 Question: agents with most sales this year
 Answer: SELECT a.first_name AS agent_first_name, a.last_name AS agent_last_name, a.transaction_count AS total_sales, a.avg_sale_price AS average_sale_price FROM agents a ORDER BY a.transaction_count DESC LIMIT 10

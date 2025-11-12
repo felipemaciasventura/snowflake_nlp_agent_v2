@@ -36,6 +36,9 @@ USER QUESTION: {input}
    - For large tables: include LIMIT clause unless specifically requested otherwise
    - For aggregations: use appropriate GROUP BY clauses
    - **CRITICAL FOR COUNT QUERIES**: When asked "how many" or count questions, respond ONLY with the COUNT(*) query - never follow with additional SELECT statements
+   - **CRITICAL FOR VALUE QUERIES**: For "highest-value", "most expensive", "highest price" - ALWAYS order by PRICE/VALUE column (sale_price, price) DESC, NEVER by date
+   - **CRITICAL FOR DATE FILTERS**: Do NOT add date filters (WHERE date >= ...) unless the question explicitly mentions a time period
+   - **CRITICAL FOR DOMAIN MAPPING**: When user asks about "orders" in real estate context, interpret as "transactions" - use transactions table
 
 4. **COUNT QUERY RULES:**
    - Questions like "how many X" should return ONLY: SELECT COUNT(*) AS total_count FROM table_name

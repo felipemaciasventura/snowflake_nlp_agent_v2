@@ -33,10 +33,19 @@ Question: {input}
 7. For rankings: use RANK() OVER (ORDER BY ...)
 8. For prices: use column names like sale_price, list_price, price
 9. For database/schema info: use CURRENT_DATABASE() and CURRENT_SCHEMA() functions
+10. 🔥 CRITICAL: For "highest-value", "most expensive", "highest price" queries: ALWAYS order by PRICE/VALUE column (sale_price, price) DESC, NEVER by date
+11. 🔥 CRITICAL: Do NOT add date filters (WHERE date >= ...) unless the question explicitly asks for a time period (e.g., "last 30 days", "this year")
+12. 🔥 CRITICAL: When user asks about "orders" in real estate context, interpret as "transactions" - use transactions table
 
 📝 SPECIFIC EXAMPLES:
 Question: most expensive properties by city
 Answer: SELECT l.city, p.property_id, p.price, RANK() OVER (PARTITION BY l.city ORDER BY p.price DESC) AS rank FROM properties p JOIN locations l ON p.location_id = l.location_id WHERE p.price > 500000 ORDER BY l.city, rank LIMIT 10
+
+Question: show the 10 highest-value orders
+Answer: SELECT p.property_id, p.price AS list_price, t.sale_date, t.sale_price AS final_sale_price FROM properties p JOIN transactions t ON p.property_id = t.property_id ORDER BY t.sale_price DESC LIMIT 10
+
+Question: highest-value transactions
+Answer: SELECT t.transaction_id, p.property_id, t.sale_price, t.sale_date FROM properties p JOIN transactions t ON p.property_id = t.property_id ORDER BY t.sale_price DESC LIMIT 10
 
 Question: agents with most sales
 Answer: SELECT first_name, last_name, transaction_count FROM agents ORDER BY transaction_count DESC LIMIT 10

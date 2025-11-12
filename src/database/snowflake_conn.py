@@ -3,6 +3,8 @@ Snowflake connection and management
 """
 
 import logging
+import os
+import time
 from typing import Any, Dict, Optional
 
 import snowflake.connector
@@ -34,8 +36,53 @@ class SnowflakeConnection:
         self.engine = None
         self.is_connected = False
 
-    def connect(self) -> bool:
-        """Establish connection to Snowflake"""
+    def connect(self, max_retries: int = 3, retry_delay: int = 5) -> bool:
+        """Establish connection to Snowflake with retry logic.
+        
+        Args:
+            max_retries: Maximum number of connection retry attempts (default: 3)
+            retry_delay: Delay in seconds between retry attempts (default: 5)
+        
+        Returns:
+            True if connection successful, False otherwise
+        """
+        for attempt in range(max_retries):
+            try:
+                return self._connect_attempt()
+            except snowflake.connector.errors.OperationalError as e:
+                error_str = str(e)
+                # Check if error is retryable (network/connection issues)
+                is_retryable = (
+                    "Failed to resolve" in error_str or
+                    "Name or service not known" in error_str or
+                    "Connection refused" in error_str or
+                    "timeout" in error_str.lower() or
+                    "timed out" in error_str.lower()
+                )
+                
+                if is_retryable and attempt < max_retries - 1:
+                    logger.warning(
+                        f"Connection attempt {attempt + 1} failed (retryable error), "
+                        f"retrying in {retry_delay} seconds... Error: {error_str}"
+                    )
+                    log_manager.add_log(
+                        "⚠️ Connection Retry",
+                        f"Attempt {attempt + 1}/{max_retries} failed, retrying in {retry_delay}s...",
+                        "WARNING"
+                    )
+                    time.sleep(retry_delay)
+                    continue
+                else:
+                    # Non-retryable error or last attempt
+                    return self._handle_connection_error(e, attempt, max_retries)
+            except Exception as e:
+                # Non-retryable errors
+                return self._handle_connection_error(e, attempt, max_retries)
+        
+        return False
+
+    def _connect_attempt(self) -> bool:
+        """Single connection attempt to Snowflake"""
         try:
             log_manager.add_log("🔌 Connecting", "Starting connection to Snowflake...")
 
@@ -48,9 +95,13 @@ class SnowflakeConnection:
                 st.error(error_msg)
                 return False
 
-            # Connection configuration
+            # Clean and validate SNOWFLAKE_ACCOUNT format
+            # Remove any trailing parts after # or @ (common mistake)
+            account_clean = config.SNOWFLAKE_ACCOUNT.split("#")[0].split("@")[0].strip()
+            
+            # Connection configuration with timeouts
             connection_params = {
-                "account": config.SNOWFLAKE_ACCOUNT,
+                "account": account_clean,
                 "user": config.SNOWFLAKE_USER,
                 "password": config.SNOWFLAKE_PASSWORD,
                 "warehouse": config.SNOWFLAKE_WAREHOUSE,
@@ -58,11 +109,22 @@ class SnowflakeConnection:
                 "schema": config.SNOWFLAKE_SCHEMA,
                 "client_session_keep_alive": True,
                 "application": "StreamlitNLPAgent",
+                # Timeout configuration (in seconds)
+                "network_timeout": int(os.getenv("SNOWFLAKE_NETWORK_TIMEOUT", "60")),
+                "login_timeout": int(os.getenv("SNOWFLAKE_LOGIN_TIMEOUT", "30")),
             }
+
+            if account_clean != config.SNOWFLAKE_ACCOUNT:
+                log_manager.add_log(
+                    "⚠️ Account Format Warning",
+                    f"SNOWFLAKE_ACCOUNT was cleaned from '{config.SNOWFLAKE_ACCOUNT}' to '{account_clean}'. "
+                    f"Please remove any characters after # or @ in your .env file.",
+                    "WARNING"
+                )
 
             log_manager.add_log(
                 "⚙️ Configuration",
-                f"Connecting to {config.SNOWFLAKE_ACCOUNT}/{config.SNOWFLAKE_DATABASE}",
+                f"Connecting to {account_clean}/{config.SNOWFLAKE_DATABASE}",
             )
 
             # Establish direct connection
@@ -93,11 +155,36 @@ class SnowflakeConnection:
             )
 
             return True
-
         except Exception as e:
-            error_msg = error_handler.handle_exception(e, "Snowflake connection")
-            st.error(error_msg)
-            return False
+            # Re-raise to be handled by retry logic
+            raise
+
+    def _handle_connection_error(self, e: Exception, attempt: int, max_retries: int) -> bool:
+        """Handle connection errors with appropriate messaging"""
+        error_str = str(e)
+        
+        if isinstance(e, snowflake.connector.errors.OperationalError):
+            if "Failed to resolve" in error_str or "Name or service not known" in error_str:
+                error_msg = (
+                    f"❌ Cannot connect to Snowflake account '{config.SNOWFLAKE_ACCOUNT}' "
+                    f"(attempt {attempt + 1}/{max_retries}).\n"
+                    f"Please verify:\n"
+                    f"1. The SNOWFLAKE_ACCOUNT format is correct (e.g., 'xy12345' or 'xy12345.us-east-1')\n"
+                    f"2. You have internet connectivity\n"
+                    f"3. The account name is correct (without extra characters like # or @)\n\n"
+                    f"Error details: {error_str}"
+                )
+            else:
+                error_msg = (
+                    f"❌ Snowflake connection error (attempt {attempt + 1}/{max_retries}): {error_str}"
+                )
+        else:
+            error_msg = error_handler.handle_exception(e, f"Snowflake connection (attempt {attempt + 1}/{max_retries})")
+        
+        log_manager.add_log("❌ Connection Error", error_msg, "ERROR")
+        st.error(error_msg)
+        logger.error(f"Connection failed after {attempt + 1} attempts: {error_str}")
+        return False
 
     def disconnect(self):
         """Close connection to Snowflake"""
@@ -116,12 +203,29 @@ class SnowflakeConnection:
         except Exception as e:
             error_handler.handle_exception(e, "Snowflake disconnection")
 
-    def execute_query(self, query: str) -> Optional[Any]:
-        """Execute a SQL query"""
+    def execute_query(self, query: str, retry_on_failure: bool = True) -> Optional[Any]:
+        """Execute a SQL query with optional retry on connection failure.
+        
+        Args:
+            query: SQL query to execute
+            retry_on_failure: If True, attempt to reconnect and retry on connection errors
+        
+        Returns:
+            Query result or None if execution failed
+        """
         if not self.is_connected or not self.connection:
-            error_msg = "No active connection to Snowflake"
-            log_manager.add_log("❌ Error", error_msg, "ERROR")
-            return None
+            if retry_on_failure:
+                logger.info("No active connection, attempting to reconnect...")
+                if self.connect(max_retries=1, retry_delay=2):
+                    logger.info("Reconnected successfully, retrying query")
+                else:
+                    error_msg = "No active connection to Snowflake and reconnection failed"
+                    log_manager.add_log("❌ Error", error_msg, "ERROR")
+                    return None
+            else:
+                error_msg = "No active connection to Snowflake"
+                log_manager.add_log("❌ Error", error_msg, "ERROR")
+                return None
 
         try:
             cursor = self.connection.cursor()
@@ -136,6 +240,34 @@ class SnowflakeConnection:
 
             return {"data": results, "columns": columns, "row_count": len(results)}
 
+        except snowflake.connector.errors.OperationalError as e:
+            error_str = str(e)
+            # Check if connection was lost
+            if retry_on_failure and ("connection" in error_str.lower() or "closed" in error_str.lower()):
+                logger.warning(f"Connection lost during query execution, attempting reconnect: {e}")
+                if self.connect(max_retries=1, retry_delay=2):
+                    logger.info("Reconnected, retrying query")
+                    try:
+                        cursor = self.connection.cursor()
+                        cursor.execute(query)
+                        results = cursor.fetchall()
+                        columns = (
+                            [desc[0] for desc in cursor.description] if cursor.description else []
+                        )
+                        cursor.close()
+                        log_manager.add_log("📊 Query", f"Executed query after reconnect: {len(results)} rows")
+                        return {"data": results, "columns": columns, "row_count": len(results)}
+                    except Exception as retry_e:
+                        logger.error(f"Query failed after reconnect: {retry_e}")
+                        error_msg = error_handler.handle_exception(retry_e, "query execution after reconnect")
+                        return None
+                else:
+                    error_msg = f"Connection lost and reconnection failed: {error_str}"
+                    log_manager.add_log("❌ Error", error_msg, "ERROR")
+                    return None
+            else:
+                error_msg = error_handler.handle_exception(e, "query execution")
+                return None
         except Exception as e:
             error_msg = error_handler.handle_exception(e, "query execution")
             return None

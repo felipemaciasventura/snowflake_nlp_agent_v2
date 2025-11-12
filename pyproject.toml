@@ -46,7 +46,7 @@ classifiers = [
 ]
 requires-python = ">=3.8"
 dependencies = [
-    "streamlit>=1.28.1",
+    "streamlit>=1.39.0",
     "langchain>=0.1.12",
     "langchain-community>=0.0.20",
     "langchain-groq>=0.1.1",
@@ -60,6 +60,8 @@ dependencies = [
     "plotly>=5.18.0",
     "sqlparse>=0.4.4",
     "pydantic>=2.5.3",
+    "pyyaml>=6.0.1",
+    "setuptools>=68.0.0",
 ]
 
 [project.optional-dependencies]

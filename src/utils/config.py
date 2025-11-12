@@ -24,20 +24,27 @@ class Config:
         self.SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE")
         self.SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
 
-        # LLM Providers - Triple support (Groq + Gemini + Ollama)
-        self.GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-        self.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+        # LLM Provider Enable/Disable Switches (clearer configuration)
+        # Set to "true" or "1" to enable, "false" or "0" to disable
+        self.ENABLE_GROQ = os.getenv("ENABLE_GROQ", "true").lower() in ("true", "1", "yes")
+        self.ENABLE_GEMINI = os.getenv("ENABLE_GEMINI", "true").lower() in ("true", "1", "yes")
+        self.ENABLE_OLLAMA = os.getenv("ENABLE_OLLAMA", "true").lower() in ("true", "1", "yes")
+        self.ENABLE_SQLCODER = os.getenv("ENABLE_SQLCODER", "true").lower() in ("true", "1", "yes")
+
+        # LLM Providers - API Keys and configuration
+        self.GROQ_API_KEY = os.getenv("GROQ_API_KEY") if self.ENABLE_GROQ else None
+        self.GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY") if self.ENABLE_GEMINI else None
 
         # Ollama configuration (local model)
         self.OLLAMA_BASE_URL = os.getenv(
             "OLLAMA_BASE_URL", "http://192.168.0.100:11434"
-        )
+        ) if self.ENABLE_OLLAMA else None
         self.OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
 
         # SQLCoder configuration (specialized SQL model)
         self.SQLCODER_BASE_URL = os.getenv(
             "SQLCODER_BASE_URL", "http://192.168.0.145:11434"
-        )
+        ) if self.ENABLE_SQLCODER else None
         self.SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "sqlcoder-fp16:latest")
 
         # Model configuration
@@ -45,9 +52,11 @@ class Config:
         self.GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-1.5-flash")  # For Gemini
 
         # LLM Provider selection (auto-detect or manual)
+        # Options: "auto", "groq", "gemini", "ollama", "sqlcoder"
+        # "auto" will use priority: SQLCoder > Ollama > Gemini > Groq
         self.LLM_PROVIDER = os.getenv(
             "LLM_PROVIDER", "auto"
-        )  # auto, groq, gemini, ollama, sqlcoder
+        ).lower()
 
         # App
         self.DEBUG = os.getenv("DEBUG", "False").lower() == "true"
@@ -72,6 +81,8 @@ class Config:
 
     def is_ollama_available(self) -> bool:
         """Check if Ollama is available and accessible"""
+        if not self.ENABLE_OLLAMA or not self.OLLAMA_BASE_URL:
+            return False
         try:
             response = requests.get(f"{self.OLLAMA_BASE_URL}/api/tags", timeout=3)
             return response.status_code == 200
@@ -80,6 +91,8 @@ class Config:
 
     def is_sqlcoder_available(self) -> bool:
         """Check if SQLCoder is available and accessible"""
+        if not self.ENABLE_SQLCODER or not self.SQLCODER_BASE_URL:
+            return False
         try:
             response = requests.get(f"{self.SQLCODER_BASE_URL}/api/tags", timeout=3)
             return response.status_code == 200
@@ -87,29 +100,115 @@ class Config:
             return False
 
     def get_available_llm_provider(self) -> str:
-        """Detect which LLM provider is available"""
-        if self.LLM_PROVIDER == "groq" and self.GROQ_API_KEY:
-            return "groq"
-        elif self.LLM_PROVIDER == "gemini" and self.GOOGLE_API_KEY:
-            return "gemini"
-        elif self.LLM_PROVIDER == "ollama" and self.is_ollama_available():
-            return "ollama"
-        elif self.LLM_PROVIDER == "sqlcoder" and self.is_sqlcoder_available():
-            return "sqlcoder"
-        elif self.LLM_PROVIDER == "auto":
-            # Auto-detect: priority SQLCoder > Ollama > Gemini > Groq (specialized first, then local first)
-            if self.is_sqlcoder_available():
-                return "sqlcoder"
-            elif self.is_ollama_available():
-                return "ollama"
-            elif self.GOOGLE_API_KEY:
-                return "gemini"
-            elif self.GROQ_API_KEY:
+        """Detect which LLM provider is available based on configuration and availability"""
+        # Manual provider selection (if specified)
+        if self.LLM_PROVIDER and self.LLM_PROVIDER != "auto":
+            provider = self.LLM_PROVIDER.lower()
+            if provider == "groq" and self.ENABLE_GROQ and self.GROQ_API_KEY:
                 return "groq"
+            elif provider == "gemini" and self.ENABLE_GEMINI and self.GOOGLE_API_KEY:
+                return "gemini"
+            elif provider == "ollama" and self.ENABLE_OLLAMA and self.is_ollama_available():
+                return "ollama"
+            elif provider == "sqlcoder" and self.ENABLE_SQLCODER and self.is_sqlcoder_available():
+                return "sqlcoder"
+        
+        # Auto-detect mode: priority SQLCoder > Ollama > Gemini > Groq
+        # (specialized first, then local first, then cloud)
+        if self.LLM_PROVIDER == "auto" or not self.LLM_PROVIDER:
+            if self.ENABLE_SQLCODER and self.is_sqlcoder_available():
+                return "sqlcoder"
+            elif self.ENABLE_OLLAMA and self.is_ollama_available():
+                return "ollama"
+            elif self.ENABLE_GEMINI and self.GOOGLE_API_KEY:
+                return "gemini"
+            elif self.ENABLE_GROQ and self.GROQ_API_KEY:
+                return "groq"
+        
         return None
+
+    def get_active_provider_info(self) -> dict:
+        """Get detailed information about the currently active provider"""
+        provider = self.get_available_llm_provider()
+        if not provider:
+            return {
+                "provider": None,
+                "model": None,
+                "status": "unavailable",
+                "type": None,
+                "description": "No LLM provider available"
+            }
+        
+        info = {"provider": provider, "status": "active"}
+        
+        if provider == "groq":
+            info.update({
+                "model": self.MODEL_NAME,
+                "type": "cloud",
+                "description": "Groq Cloud (Fast Inference)",
+                "enabled": self.ENABLE_GROQ
+            })
+        elif provider == "gemini":
+            info.update({
+                "model": self.GEMINI_MODEL,
+                "type": "cloud",
+                "description": "Google Gemini (Recommended)",
+                "enabled": self.ENABLE_GEMINI
+            })
+        elif provider == "ollama":
+            info.update({
+                "model": self.OLLAMA_MODEL,
+                "type": "local",
+                "description": "Ollama Local (Maximum Privacy)",
+                "server": self.OLLAMA_BASE_URL,
+                "enabled": self.ENABLE_OLLAMA
+            })
+        elif provider == "sqlcoder":
+            info.update({
+                "model": self.SQLCODER_MODEL,
+                "type": "local",
+                "description": "SQLCoder (SQL Specialized)",
+                "server": self.SQLCODER_BASE_URL,
+                "enabled": self.ENABLE_SQLCODER
+            })
+        
+        return info
+
+    def get_all_providers_status(self) -> dict:
+        """Get status of all configured providers"""
+        return {
+            "groq": {
+                "enabled": self.ENABLE_GROQ,
+                "configured": bool(self.GROQ_API_KEY),
+                "available": self.ENABLE_GROQ and bool(self.GROQ_API_KEY),
+                "model": self.MODEL_NAME if self.ENABLE_GROQ else None
+            },
+            "gemini": {
+                "enabled": self.ENABLE_GEMINI,
+                "configured": bool(self.GOOGLE_API_KEY),
+                "available": self.ENABLE_GEMINI and bool(self.GOOGLE_API_KEY),
+                "model": self.GEMINI_MODEL if self.ENABLE_GEMINI else None
+            },
+            "ollama": {
+                "enabled": self.ENABLE_OLLAMA,
+                "configured": bool(self.OLLAMA_BASE_URL),
+                "available": self.ENABLE_OLLAMA and self.is_ollama_available(),
+                "model": self.OLLAMA_MODEL if self.ENABLE_OLLAMA else None,
+                "server": self.OLLAMA_BASE_URL if self.ENABLE_OLLAMA else None
+            },
+            "sqlcoder": {
+                "enabled": self.ENABLE_SQLCODER,
+                "configured": bool(self.SQLCODER_BASE_URL),
+                "available": self.ENABLE_SQLCODER and self.is_sqlcoder_available(),
+                "model": self.SQLCODER_MODEL if self.ENABLE_SQLCODER else None,
+                "server": self.SQLCODER_BASE_URL if self.ENABLE_SQLCODER else None
+            }
+        }
 
     def validate(self) -> Dict:
         """Validate that all required variables are configured"""
+        import re
+        
         required_vars = [
             "SNOWFLAKE_ACCOUNT",
             "SNOWFLAKE_USER",
@@ -118,15 +217,39 @@ class Config:
             "SNOWFLAKE_DATABASE",
         ]
 
-        # Verify that at least one LLM provider is available
-        llm_provider = self.get_available_llm_provider()
-        if not llm_provider:
-            required_vars.extend(["GROQ_API_KEY or GOOGLE_API_KEY or OLLAMA_BASE_URL or SQLCODER_BASE_URL"])
-
         missing_vars = []
         for var in required_vars:
             if not getattr(self, var):
                 missing_vars.append(var)
+        
+        # Validate SNOWFLAKE_ACCOUNT format if it exists
+        if self.SNOWFLAKE_ACCOUNT:
+            # Snowflake account should be alphanumeric with optional region (e.g., "xy12345" or "xy12345.us-east-1")
+            # Should not contain special characters like #, @, /, etc.
+            account_pattern = r'^[a-zA-Z0-9_-]+(\.[a-zA-Z0-9_-]+)*$'
+            if not re.match(account_pattern, self.SNOWFLAKE_ACCOUNT):
+                missing_vars.append(
+                    f"SNOWFLAKE_ACCOUNT has invalid format: '{self.SNOWFLAKE_ACCOUNT}'. "
+                    f"Expected format: 'xy12345' or 'xy12345.us-east-1' (no #, @, or / characters)"
+                )
+
+        # Verify that at least one LLM provider is available
+        llm_provider = self.get_available_llm_provider()
+        if not llm_provider:
+            # Check which LLM providers are missing
+            llm_missing = []
+            if not self.GROQ_API_KEY:
+                llm_missing.append("GROQ_API_KEY")
+            if not self.GOOGLE_API_KEY:
+                llm_missing.append("GOOGLE_API_KEY")
+            if not self.is_ollama_available():
+                llm_missing.append("OLLAMA_BASE_URL (or Ollama not accessible)")
+            if not self.is_sqlcoder_available():
+                llm_missing.append("SQLCODER_BASE_URL (or SQLCoder not accessible)")
+            
+            # Add a summary message about LLM providers
+            if len(llm_missing) >= 4:  # All are missing
+                missing_vars.append("At least one LLM provider (GROQ_API_KEY, GOOGLE_API_KEY, OLLAMA_BASE_URL, or SQLCODER_BASE_URL)")
 
         return {"valid": len(missing_vars) == 0, "missing_vars": missing_vars}
 

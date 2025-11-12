@@ -1,0 +1,104 @@
+{
+  "templates": [
+    {
+      "name": "Top N by Metric",
+      "description": "Get top N items by a metric (e.g., price, count)",
+      "template": "SELECT * FROM {table} ORDER BY {metric} DESC LIMIT {n}",
+      "parameters": [
+        "table",
+        "metric",
+        "n"
+      ],
+      "category": "analytics",
+      "tags": [
+        "top",
+        "ranking",
+        "analytics"
+      ]
+    },
+    {
+      "name": "Time Series Analysis",
+      "description": "Analyze data over time with grouping",
+      "template": "SELECT DATE_TRUNC('{granularity}', {date_column}) as date, SUM({metric}) as total FROM {table} WHERE {date_column} >= '{start_date}' AND {date_column} <= '{end_date}' GROUP BY date ORDER BY date",
+      "parameters": [
+        "granularity",
+        "date_column",
+        "metric",
+        "table",
+        "start_date",
+        "end_date"
+      ],
+      "category": "analytics",
+      "tags": [
+        "time-series",
+        "analytics",
+        "trends"
+      ]
+    },
+    {
+      "name": "Count by Category",
+      "description": "Count records grouped by a category column",
+      "template": "SELECT {category_column}, COUNT(*) as count FROM {table} GROUP BY {category_column} ORDER BY count DESC",
+      "parameters": [
+        "category_column",
+        "table"
+      ],
+      "category": "reporting",
+      "tags": [
+        "count",
+        "grouping",
+        "reporting"
+      ]
+    },
+    {
+      "name": "Average by Category",
+      "description": "Calculate average of a metric grouped by category",
+      "template": "SELECT {category_column}, AVG({metric_column}) as average FROM {table} GROUP BY {category_column} ORDER BY average DESC",
+      "parameters": [
+        "category_column",
+        "metric_column",
+        "table"
+      ],
+      "category": "analytics",
+      "tags": [
+        "average",
+        "grouping",
+        "analytics"
+      ]
+    },
+    {
+      "name": "Filtered Search",
+      "description": "Search with multiple filters",
+      "template": "SELECT * FROM {table} WHERE {conditions} ORDER BY {order_by} LIMIT {limit}",
+      "parameters": [
+        "table",
+        "conditions",
+        "order_by",
+        "limit"
+      ],
+      "category": "search",
+      "tags": [
+        "filter",
+        "search"
+      ]
+    },
+    {
+      "name": "Join Tables",
+      "description": "Join two tables with a common key",
+      "template": "SELECT {columns} FROM {table1} {join_type} JOIN {table2} ON {table1}.{key1} = {table2}.{key2}",
+      "parameters": [
+        "columns",
+        "table1",
+        "table2",
+        "join_type",
+        "key1",
+        "key2"
+      ],
+      "category": "analytics",
+      "tags": [
+        "join",
+        "relationships"
+      ]
+    }
+  ]
+}
