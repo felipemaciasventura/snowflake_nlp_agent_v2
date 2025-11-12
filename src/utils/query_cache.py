@@ -29,6 +29,7 @@ class QueryResultCache:
         self.cache_file = self.cache_dir / "query_cache.json"
         self.ttl_minutes = ttl_minutes
         self.memory_cache: Dict[str, Dict[str, Any]] = {}
+        self._writes_since_last_save = 0
         self._load_cache()
 
     def _generate_cache_key(self, sql: str, params: Optional[Dict] = None) -> str:
@@ -72,6 +73,7 @@ class QueryResultCache:
             with open(self.cache_file, "w", encoding="utf-8") as f:
                 json.dump(self.memory_cache, f, indent=2, default=str)
             logger.debug(f"Saved {len(self.memory_cache)} cache entries to disk")
+            self._writes_since_last_save = 0
         except Exception as e:
             logger.warning(f"Failed to save cache: {e}")
 
@@ -159,9 +161,10 @@ class QueryResultCache:
         
         self.memory_cache[cache_key] = cache_entry
         logger.info(f"Cached result for query: {sql[:50]}...")
+        self._writes_since_last_save += 1
         
-        # Save to disk periodically (every 10 cache operations)
-        if len(self.memory_cache) % 10 == 0:
+        # Persist more aggressively but batch a few writes together
+        if self._writes_since_last_save >= 3:
             self._save_cache()
 
     def invalidate_cache(self, sql: Optional[str] = None):
@@ -183,6 +186,15 @@ class QueryResultCache:
                 logger.info(f"Invalidated cache for query: {sql[:50]}...")
         
         self._save_cache()
+
+    def refresh(self):
+        """Public helper to drop expired entries and persist the current cache."""
+        self._clean_expired_entries()
+        self._save_cache()
+
+    def clear(self):
+        """Public helper to remove all cache entries."""
+        self.invalidate_cache()
 
     def get_cache_stats(self) -> Dict[str, Any]:
         """Get cache statistics"""
@@ -216,7 +228,5 @@ def get_query_cache(ttl_minutes: int = 60) -> QueryResultCache:
     if _query_cache is None:
         _query_cache = QueryResultCache(ttl_minutes=ttl_minutes)
     return _query_cache
-
-
 
 

@@ -87,7 +87,7 @@ class SnowflakeConnection:
             log_manager.add_log("🔌 Connecting", "Starting connection to Snowflake...")
 
             # Validate configuration
-            validation = config.validate()
+            validation = config.validate(require_llm=False)
             if not validation["valid"]:
                 missing_vars = ", ".join(validation["missing_vars"])
                 error_msg = f"Missing environment variables: {missing_vars}"
@@ -153,6 +153,15 @@ class SnowflakeConnection:
                 f"User: {result[0]}, Warehouse: {result[1]}, "
                 f"DB: {result[2]}, Schema: {result[3]}",
             )
+
+            # Warn (but do not block) if no LLM provider is ready
+            if not config.get_available_llm_provider():
+                warning_msg = (
+                    "No LLM provider is currently available. Configure at least one of "
+                    "GROQ/Gemini/Ollama/SQLCoder to enable natural language queries."
+                )
+                log_manager.add_log("⚠️ LLM Unavailable", warning_msg, "WARNING")
+                st.warning(warning_msg)
 
             return True
         except Exception as e:

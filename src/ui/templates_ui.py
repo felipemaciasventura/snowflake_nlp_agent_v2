@@ -144,18 +144,17 @@ def render_cache_section():
         col1, col2 = st.sidebar.columns(2)
         with col1:
             if st.button("🔄 Refresh Cache"):
-                cache._clean_expired_entries()
+                cache.refresh()
                 st.sidebar.success("Cache refreshed")
                 st.rerun()
         
         with col2:
             if st.button("🗑️ Clear Cache"):
-                cache.invalidate_cache()
+                cache.clear()
                 st.sidebar.success("Cache cleared")
                 st.rerun()
     else:
         st.sidebar.info("Cache not available")
-
 
 
 

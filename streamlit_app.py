@@ -59,6 +59,10 @@ def main():
                         google_api_key=google_api_key,
                     )
                     st.success("✅ Connection established successfully!")
+                except RuntimeError as e:
+                    # Allow the UI to load so users can still inspect cache/settings
+                    st.session_state.agent = None
+                    st.warning(f"⚠️ LLM not ready: {e}")
                 except Exception as e:
                     st.error(f"❌ Error initializing LLM: {e}")
                     st.stop()

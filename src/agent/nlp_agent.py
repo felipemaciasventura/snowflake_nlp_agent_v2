@@ -20,6 +20,7 @@ except ImportError:
 
 import logging
 import math
+import re
 import time
 from typing import Any, Dict, Optional
 from decimal import Decimal
@@ -509,8 +510,6 @@ class SnowflakeNLPAgent:
         if not isinstance(sql_text, str):
             return ""
 
-        import re
-
         # Remove leading and trailing spaces
         cleaned = sql_text.strip()
 
@@ -551,6 +550,34 @@ class SnowflakeNLPAgent:
         result = re.sub(r"[ \t]+", " ", result)    # Normalize spaces/tabs to single space
 
         return result
+
+    def _apply_row_limit(self, sql_text: str) -> tuple[str, bool]:
+        """Apply a defensive LIMIT to large SELECT/WITH queries to avoid runaway downloads."""
+        limit = getattr(config, "SHOW_TABLE_LIMIT", 0)
+        if limit <= 0 or not isinstance(sql_text, str):
+            return sql_text, False
+
+        cleaned = sql_text.strip().rstrip(";")
+        if not cleaned:
+            return sql_text, False
+
+        upper = cleaned.upper()
+        if upper.startswith(("SHOW", "DESCRIBE")):
+            return sql_text, False
+        if " LIMIT " in upper:
+            return sql_text, False
+
+        if upper.startswith(("SELECT", "WITH")):
+            # Wrap original query so we do not have to rewrite complex SQL
+            limited_sql = (
+                "SELECT * FROM (\n"
+                f"{cleaned}\n"
+                ") AS LIMITED_RESULT\n"
+                f"LIMIT {limit}"
+            )
+            return limited_sql, True
+
+        return sql_text, False
 
     def _handle_metadata_query(self, user_question: str) -> Dict[str, Any]:
         """Handle metadata queries directly without LLM processing.
@@ -1128,6 +1155,7 @@ class SnowflakeNLPAgent:
         result_count = None
         error_message = None
         total_count = None  # For pagination
+        row_limit_notice = None
 
         try:
             # Log processing start
@@ -1527,6 +1555,18 @@ class SnowflakeNLPAgent:
                                     )
                                 
                                 # Execute paginated query
+                                limit_applied = False
+                                if not count_sql:  # Only enforce limit when paginator isn't already handling it
+                                    paginated_sql, limit_applied = self._apply_row_limit(paginated_sql)
+                                    if limit_applied:
+                                        row_limit_notice = {
+                                            "limit": config.SHOW_TABLE_LIMIT,
+                                            "reason": "auto_enforced",
+                                        }
+                                        self.log_step(
+                                            "⚠️ Row limit enforced",
+                                            f"Results truncated to {config.SHOW_TABLE_LIMIT} rows to protect the UI.",
+                                        )
                                 manual_result = self.db.run(paginated_sql)
                                 
                                 # Get total count if pagination is used
@@ -1650,6 +1690,8 @@ class SnowflakeNLPAgent:
                 "sql_query": generated_sql or "N/A",
                 "intermediate_steps": result.get("intermediate_steps", []),
             }
+            if row_limit_notice:
+                response["row_limit"] = row_limit_notice
             
             # Add Phase 2 metadata if available
             if generated_sql:

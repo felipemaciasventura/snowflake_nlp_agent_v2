@@ -3,7 +3,8 @@ Application configuration
 """
 
 import os
-from typing import Dict
+from datetime import datetime, timedelta
+from typing import Dict, Optional
 
 import requests
 from dotenv import load_dotenv
@@ -22,7 +23,7 @@ class Config:
         self.SNOWFLAKE_PASSWORD = os.getenv("SNOWFLAKE_PASSWORD")
         self.SNOWFLAKE_WAREHOUSE = os.getenv("SNOWFLAKE_WAREHOUSE")
         self.SNOWFLAKE_DATABASE = os.getenv("SNOWFLAKE_DATABASE")
-        self.SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC")
+        self.SNOWFLAKE_SCHEMA = os.getenv("SNOWFLAKE_SCHEMA", "PUBLIC").upper()
 
         # LLM Provider Enable/Disable Switches (clearer configuration)
         # Set to "true" or "1" to enable, "false" or "0" to disable
@@ -37,13 +38,13 @@ class Config:
 
         # Ollama configuration (local model)
         self.OLLAMA_BASE_URL = os.getenv(
-            "OLLAMA_BASE_URL", "http://192.168.0.100:11434"
+            "OLLAMA_BASE_URL", "http://localhost:11434"
         ) if self.ENABLE_OLLAMA else None
         self.OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "codellama:7b-instruct")
 
         # SQLCoder configuration (specialized SQL model)
         self.SQLCODER_BASE_URL = os.getenv(
-            "SQLCODER_BASE_URL", "http://192.168.0.145:11434"
+            "SQLCODER_BASE_URL", "http://localhost:11434"
         ) if self.ENABLE_SQLCODER else None
         self.SQLCODER_MODEL = os.getenv("SQLCODER_MODEL", "sqlcoder-fp16:latest")
 
@@ -79,25 +80,73 @@ class Config:
         except ValueError:
             self.SHOW_TABLE_SAMPLE_PERCENT = 0.0
 
+        # Cache provider availability to avoid blocking HTTP requests on every rerun
+        self._provider_status_cache: Dict[str, Dict[str, Optional[bool]]] = {}
+        self.PROVIDER_STATUS_CACHE_TTL = int(
+            os.getenv("LLM_STATUS_CACHE_TTL_SECONDS", "30")
+        )
+
+    # ------------------------------------------------------------------ #
+    # Provider availability helpers
+    # ------------------------------------------------------------------ #
+    def _get_cached_provider_status(self, provider: str) -> Optional[bool]:
+        """Return cached availability if fresh, else None."""
+        cache_entry = self._provider_status_cache.get(provider)
+        if not cache_entry:
+            return None
+
+        ttl = timedelta(seconds=max(self.PROVIDER_STATUS_CACHE_TTL, 1))
+        if datetime.now() - cache_entry["timestamp"] > ttl:
+            return None
+
+        return cache_entry["value"]
+
+    def _set_cached_provider_status(self, provider: str, value: bool) -> bool:
+        """Store availability value and return it for convenience."""
+        self._provider_status_cache[provider] = {
+            "value": value,
+            "timestamp": datetime.now(),
+        }
+        return value
+
+    def refresh_provider_status(self, provider: Optional[str] = None):
+        """Force refresh of cached provider status."""
+        if provider:
+            self._provider_status_cache.pop(provider, None)
+        else:
+            self._provider_status_cache.clear()
+
     def is_ollama_available(self) -> bool:
         """Check if Ollama is available and accessible"""
         if not self.ENABLE_OLLAMA or not self.OLLAMA_BASE_URL:
             return False
+
+        cached = self._get_cached_provider_status("ollama")
+        if cached is not None:
+            return cached
+
         try:
             response = requests.get(f"{self.OLLAMA_BASE_URL}/api/tags", timeout=3)
-            return response.status_code == 200
+            return self._set_cached_provider_status(
+                "ollama", response.status_code == 200
+            )
         except (requests.exceptions.RequestException, requests.exceptions.Timeout):
-            return False
+            return self._set_cached_provider_status("ollama", False)
 
     def is_sqlcoder_available(self) -> bool:
         """Check if SQLCoder is available and accessible"""
         if not self.ENABLE_SQLCODER or not self.SQLCODER_BASE_URL:
             return False
+        cached = self._get_cached_provider_status("sqlcoder")
+        if cached is not None:
+            return cached
         try:
             response = requests.get(f"{self.SQLCODER_BASE_URL}/api/tags", timeout=3)
-            return response.status_code == 200
+            return self._set_cached_provider_status(
+                "sqlcoder", response.status_code == 200
+            )
         except (requests.exceptions.RequestException, requests.exceptions.Timeout):
-            return False
+            return self._set_cached_provider_status("sqlcoder", False)
 
     def get_available_llm_provider(self) -> str:
         """Detect which LLM provider is available based on configuration and availability"""
@@ -205,8 +254,12 @@ class Config:
             }
         }
 
-    def validate(self) -> Dict:
-        """Validate that all required variables are configured"""
+    def validate(self, require_llm: bool = True) -> Dict:
+        """Validate that all required variables are configured.
+        
+        Args:
+            require_llm: When False, skip LLM availability checks (useful for DB-only flows)
+        """
         import re
         
         required_vars = [
@@ -233,23 +286,24 @@ class Config:
                     f"Expected format: 'xy12345' or 'xy12345.us-east-1' (no #, @, or / characters)"
                 )
 
-        # Verify that at least one LLM provider is available
-        llm_provider = self.get_available_llm_provider()
-        if not llm_provider:
-            # Check which LLM providers are missing
-            llm_missing = []
-            if not self.GROQ_API_KEY:
-                llm_missing.append("GROQ_API_KEY")
-            if not self.GOOGLE_API_KEY:
-                llm_missing.append("GOOGLE_API_KEY")
-            if not self.is_ollama_available():
-                llm_missing.append("OLLAMA_BASE_URL (or Ollama not accessible)")
-            if not self.is_sqlcoder_available():
-                llm_missing.append("SQLCODER_BASE_URL (or SQLCoder not accessible)")
-            
-            # Add a summary message about LLM providers
-            if len(llm_missing) >= 4:  # All are missing
-                missing_vars.append("At least one LLM provider (GROQ_API_KEY, GOOGLE_API_KEY, OLLAMA_BASE_URL, or SQLCODER_BASE_URL)")
+        if require_llm:
+            # Verify that at least one LLM provider is available
+            llm_provider = self.get_available_llm_provider()
+            if not llm_provider:
+                # Check which LLM providers are missing
+                llm_missing = []
+                if not self.GROQ_API_KEY:
+                    llm_missing.append("GROQ_API_KEY")
+                if not self.GOOGLE_API_KEY:
+                    llm_missing.append("GOOGLE_API_KEY")
+                if not self.is_ollama_available():
+                    llm_missing.append("OLLAMA_BASE_URL (or Ollama not accessible)")
+                if not self.is_sqlcoder_available():
+                    llm_missing.append("SQLCODER_BASE_URL (or SQLCoder not accessible)")
+                
+                # Add a summary message about LLM providers
+                if len(llm_missing) >= 4:  # All are missing
+                    missing_vars.append("At least one LLM provider (GROQ_API_KEY, GOOGLE_API_KEY, OLLAMA_BASE_URL, or SQLCODER_BASE_URL)")
 
         return {"valid": len(missing_vars) == 0, "missing_vars": missing_vars}
 

@@ -128,6 +128,7 @@ def setup_sidebar():
             try:
                 # Set provider
                 config.LLM_PROVIDER = sel
+                config.refresh_provider_status(sel)
                 # Set model field accordingly
                 if sel == "groq" and model_val:
                     config.MODEL_NAME = model_val
@@ -180,7 +181,6 @@ def setup_sidebar():
         st.session_state.messages = []
         st.session_state.processing_logs = []
         st.rerun()
-
 
 
 

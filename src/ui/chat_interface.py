@@ -11,6 +11,8 @@ import streamlit as st
 from src.ui.query_detector import get_help_response, get_redirect_response
 from src.ui.result_formatter import format_sql_result_to_dataframe
 
+CHAT_HISTORY_MAX_ROWS = 200
+
 
 def _render_single_message(message):
     """Render a single message from history."""
@@ -85,11 +87,16 @@ def display_chat_messages():
 
 def _append_assistant_message(content, df=None, sql: str | None = None):
     """Add an assistant message to history with optional DataFrame and SQL string for stable UI keys."""
+    if df is not None and isinstance(df, pd.DataFrame):
+        df_to_store = df.head(CHAT_HISTORY_MAX_ROWS).copy()
+    else:
+        df_to_store = pd.DataFrame()
+
     st.session_state.messages.append(
         {
             "role": "assistant",
             "content": content,
-            "data": df if df is not None else pd.DataFrame(),
+            "data": df_to_store,
             "sql": sql or "",
         }
     )
@@ -263,6 +270,15 @@ def _render_successful_result(result, prompt):
                     for warning in validation.get("warnings", [])[:3]:
                         st.warning(warning)
         
+        row_limit_notice = result.get("row_limit")
+        if row_limit_notice:
+            limit_value = row_limit_notice.get("limit")
+            limit_display = limit_value if limit_value is not None else "the configured number of"
+            st.warning(
+                f"Showing only the first {limit_display} rows to keep the app responsive. "
+                "Refine your filters to see more data."
+            )
+
         # Log the generated SQL query for transparency
         if hasattr(st, "session_state") and hasattr(st.session_state, "processing_logs"):
             if executed_sql.strip():
@@ -596,9 +612,5 @@ def display_logs_panel():
                     st.code(log["content"])
     else:
         st.info("No logs available. Make a query to see the process.")
-
-
-
-
 
 
